@@ -2,7 +2,7 @@
 
 A text-based survival game with AI-generated scenarios, three-choice decisions, ASCII art visuals, customizable themes, 8-bit sounds, and four distinct game modes.
 
-**[Play Online](https://scenario-survival.vercel.app)** *(after deploy)*
+**[Play Online](https://scenario-survival.vercel.app)**
 
 ## Features
 
