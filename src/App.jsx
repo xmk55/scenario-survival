@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useTheme } from './hooks/useTheme';
 import { useGame } from './hooks/useGame';
-import { useSound } from './context/SoundContext';
 import TitleScreen from './components/TitleScreen';
 import GameScreen from './components/GameScreen';
 import SettingsPanel from './components/SettingsPanel';
@@ -10,7 +9,6 @@ import FloatingEmojis from './components/FloatingEmojis';
 export default function App() {
   const themeHook = useTheme();
   const game = useGame();
-  const { play } = useSound();
   const [showSettings, setShowSettings] = useState(false);
 
   const handleStart = (mode) => {
@@ -46,15 +44,6 @@ export default function App() {
           onMenu={game.goToMenu}
         />
       )}
-
-      <button
-        className="floating-settings-btn"
-        onClick={() => { play('click'); setShowSettings(true); }}
-        aria-label="Settings"
-        title="Settings & Themes"
-      >
-        ⚙
-      </button>
 
       {showSettings && (
         <SettingsPanel

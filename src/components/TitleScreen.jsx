@@ -24,6 +24,8 @@ export default function TitleScreen({ onStart, onSettings }) {
     setSelectedMode(id);
   };
 
+  const selected = MODE_LIST.find((m) => m.id === selectedMode);
+
   return (
     <div className="title-screen">
       <div className="title-art">
@@ -44,12 +46,12 @@ export default function TitleScreen({ onStart, onSettings }) {
 
       <div className="title-content">
         <p className="title-tagline">
-          AI-powered survival scenarios. Three choices. One chance to live.
+          Real-life dilemmas and impossible choices — from awkward parties to midnight horror.
         </p>
 
         <div className="title-features">
+          <div className="feature-chip">Real Life + Horror</div>
           <div className="feature-chip">4 Game Modes</div>
-          <div className="feature-chip">ASCII Art</div>
           <div className="feature-chip">Custom Themes</div>
           <div className="feature-chip">8-Bit Sounds</div>
         </div>
@@ -77,21 +79,19 @@ export default function TitleScreen({ onStart, onSettings }) {
               );
             })}
           </div>
-          <p className="mode-description">
-            {MODE_LIST.find((m) => m.id === selectedMode)?.description}
-          </p>
+          <p className="mode-description">{selected?.description}</p>
         </section>
 
         <div className="title-actions">
           <button className="btn btn-primary btn-large" onClick={handleStart}>
-            {selectedMode === 'horror' ? 'Enter the Nightmare' : 'Begin Survival'}
+            {selectedMode === 'horror' ? 'Enter the Nightmare' : 'Start Playing'}
           </button>
           <button className="btn btn-secondary" onClick={handleSettings}>
             Settings & Themes
           </button>
         </div>
 
-        <p className="title-hint">Press 1, 2, or 3 during gameplay to choose quickly</p>
+        <p className="title-hint">Press 1, 2, or 3 during gameplay · Settings available from the main menu</p>
       </div>
     </div>
   );

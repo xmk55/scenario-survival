@@ -229,6 +229,251 @@ const SCENARIO_TEMPLATES = [
   },
 ];
 
+const REAL_LIFE_TEMPLATES = [
+  {
+    category: 'everyday',
+    tone: 'everyday',
+    asciiKey: 'party_invite',
+    setups: [
+      'Your friends are throwing a party tonight and everyone expects you there. You\'re exhausted and really don\'t want to go — but they\'ll notice if you skip.',
+      'Group chat is blowing up about tonight\'s party. Someone texts you directly: "You\'re coming right??" You\'d rather stay in with a book.',
+      'The party starts in an hour. You\'ve had a brutal week and the thought of small talk makes you want to scream. But your best friend is hosting.',
+    ],
+    optionPatterns: [
+      ['Be honest — text that you\'re not feeling up to it', 'Force yourself to go for an hour then leave early', 'Make up an excuse about being sick'],
+      ['Go but bring a friend as a buffer', 'Suggest hanging out one-on-one another day instead', 'Ignore the texts and hope they forget'],
+      ['Go all in — might actually have fun', 'Reply "maybe" and see how you feel later', 'Turn off your phone and stay home guilt-free'],
+    ],
+    outcomes: {
+      good: ['Your friends appreciate the honesty. One says "same honestly" and stays in too. Group video call instead.', 'You go for an hour, catch up with your best friend, and leave feeling glad you showed up.'],
+      neutral: ['The excuse works but you feel a little guilty. They post fun photos and you wonder if you missed out.', 'You stay home. It\'s peaceful. The group chat is quiet toward you for a day.'],
+      bad: ['They see through the excuse. Someone replies: "You never come anymore."', 'You ignore everything. Monday at work/school is awkward — they heard you were online gaming.'],
+    },
+  },
+  {
+    category: 'everyday',
+    tone: 'everyday',
+    asciiKey: 'car_repair',
+    setups: [
+      'Your tire goes flat on the way to work. You\'ve changed a tire before but it was years ago. You\'re on a busy roadside with cars whipping past.',
+      'A weird clunking sound starts under your hood. You pull over — the engine is smoking slightly. You\'re 20 minutes from the nearest town.',
+      'Your car won\'t start in the grocery store parking lot. Battery? Starter? You have jumper cables but no one around looks approachable.',
+    ],
+    optionPatterns: [
+      ['Change the tire yourself using the spare', 'Call roadside assistance and wait', 'Flag down a driver and ask for help'],
+      ['Pop the hood and try to identify the problem', 'Call a friend who knows cars', 'Risk driving slowly to the nearest gas station'],
+      ['Ask someone in the parking lot for a jump', 'Google the symptoms and troubleshoot', 'Call an Uber and deal with the car tomorrow'],
+    ],
+    outcomes: {
+      good: ['Forty sweaty minutes later, the spare is on. You make it to work — late, but proud.', 'Roadside assistance shows up in 25 minutes. Expensive, but you\'re back on the road.'],
+      neutral: ['A stranger helps with the jump. Your car starts. You buy them coffee as thanks.', 'You Uber home. The mechanic bill tomorrow stings, but tonight you\'re safe.'],
+      bad: ['The jack slips. You skin your knuckles and still need to call for help anyway.', 'Driving on the flat destroys the rim. Now it\'s a tow truck and a much bigger bill.'],
+    },
+  },
+  {
+    category: 'social',
+    tone: 'everyday',
+    asciiKey: 'awkward_moment',
+    setups: [
+      'You walk into a coffee shop and lock eyes with your ex at the counter. They haven\'t seen you yet. Your order is already half-placed.',
+      'You wave at someone across the street who was waving at someone behind you. They look confused. It\'s someone from your class.',
+      'Your friend introduces you to their new partner — it\'s someone you went on a terrible date with last year. Everyone is waiting for you to speak.',
+    ],
+    optionPatterns: [
+      ['Walk up and say hi like an adult', 'Pretend you didn\'t see them and order to-go', 'Leave and go to a different coffee shop'],
+      ['Laugh it off: "Wrong person, sorry!"', 'Pretend to get an urgent phone call and walk away', 'Go over and make awkward small talk anyway'],
+      ['Send a friendly text later instead of dealing with this now', 'Use the moment to apologize for how things ended', 'Hide behind the menu board until they leave'],
+    ],
+    outcomes: {
+      good: ['It\'s briefly awkward, then surprisingly normal. "Take care," they say. You exhale.', 'You laugh at yourself. The stranger laughs too. Human moment restored.'],
+      neutral: ['You escape to-go. Through the window you see them notice you leaving. Whatever.', 'Small talk is painful but survivable. You leave with your dignity mostly intact.'],
+      bad: ['You hide poorly. They definitely saw you. Eye contact through the menu board. Worse than saying hi.', 'Your apology opens old wounds. The conversation goes sideways in front of everyone.'],
+    },
+  },
+  {
+    category: 'work',
+    tone: 'everyday',
+    asciiKey: 'job_interview',
+    setups: [
+      'Job interview in five minutes. Your resume has a gap you haven\'t explained well. The interviewer calls your name.',
+      'Your manager asks you to present your project to the whole team tomorrow. You\'re not ready and hate public speaking.',
+      'Performance review today. You know you\'ve been slacking on one metric. Your boss closes the office door.',
+    ],
+    optionPatterns: [
+      ['Be upfront about the resume gap with a prepared explanation', 'Deflect and emphasize your strengths instead', 'Oversell and hope they don\'t dig deeper'],
+      ['Stay late tonight to prep the presentation', 'Ask a colleague to co-present with you', 'Be honest that you need one more day'],
+      ['Own the metric slip and present a plan to fix it', 'Blame external factors outside your control', 'Counter with everything you did do well'],
+    ],
+    outcomes: {
+      good: ['They nod. "Honesty matters here." The interview actually goes well after that.', 'Your colleague agrees to help. The presentation lands. Your manager is impressed.'],
+      neutral: ['They don\'t love the deflection but don\'t push. You\'re a "maybe."', 'Buying a day works, but you pull an all-nighter. Exhausting.'],
+      bad: ['They ask follow-up questions you can\'t answer. The oversell crumbles.', 'Blaming others makes your boss lose respect. The review goes poorly.'],
+    },
+  },
+  {
+    category: 'everyday',
+    tone: 'everyday',
+    asciiKey: 'morning_rush',
+    setups: [
+      'Your alarm didn\'t go off. Class starts in 13 minutes and you\'re still in bed. Your hair looks terrible and you haven\'t eaten.',
+      'You overslept before a job interview. Shower, outfit, or breakfast — pick two, maybe.',
+      'The bus just left without you. Next one is in 20 minutes but your exam starts in 15.',
+    ],
+    optionPatterns: [
+      ['Skip breakfast and sprint to get there', 'Text your professor you\'re running late', 'Accept defeat and go back to sleep'],
+      ['Shower in 3 minutes, grab whatever\'s clean, run', 'Call in and reschedule the interview', 'Run after the bus — it\'s worth a shot'],
+      ['Bike there — faster than waiting for the next bus', 'Go in looking rough but on time', 'Email a friend for their notes and miss today'],
+    ],
+    outcomes: {
+      good: ['You arrive breathless but on time. Nobody knows about the chaos.', 'The professor replies "thanks for letting me know." You make it with a minute to spare.'],
+      neutral: ['You\'re 8 minutes late. Awkward entrance, but you\'re there.', 'Rescheduling works. Relief — but now you have more days to stress.'],
+      bad: ['You trip running. Scraped knee AND late. Worst of both worlds.', 'Going back to sleep feels great until you check your grade later.'],
+    },
+  },
+  {
+    category: 'social',
+    tone: 'everyday',
+    asciiKey: 'text_message',
+    setups: [
+      'Your mom texts "We need to talk." Your phone is at 1% battery. You\'re on the bus and forgot your charger.',
+      'Your crush replies after three days: "hey, about Saturday..." Your phone is dying and you can\'t think straight.',
+      'Your boss texts on Sunday: "Can you come in today?" Battery at 2%. Weekend mode activated.',
+    ],
+    optionPatterns: [
+      ['Fire off a quick reply before the phone dies', 'Call them instead of texting back', 'Let it die and deal with it when you\'re home'],
+      ['Reply honestly about how you feel', 'Send a vague "sure, what\'s up?"', 'Panic-type something and hit send'],
+      ['Politely decline the Sunday request', 'Say yes to avoid conflict', 'Ignore until Monday morning'],
+    ],
+    outcomes: {
+      good: ['Your reply sends just before the screen goes black. Their response can wait — you handled it.', 'The call clears everything up in two minutes. Should\'ve called first.'],
+      neutral: ['Phone dies. They text again Monday. "Everything okay?" Minor worry caused.', 'Vague reply buys time. The conversation continues tomorrow.'],
+      bad: ['Autocorrect turns your text into nonsense. They send "???" and now you look weird.', 'Saying yes ruins your Sunday. Resentment builds all day.'],
+    },
+  },
+  {
+    category: 'everyday',
+    tone: 'everyday',
+    asciiKey: 'grocery_store',
+    setups: [
+      'You reach for the last carton of milk at the same time as another person. You both hesitate. This is stupidly awkward.',
+      'The self-checkout keeps saying "unexpected item in bagging area." A line is forming behind you.',
+      'You realize at checkout you forgot your wallet. Your phone wallet app might work — maybe.',
+    ],
+    optionPatterns: [
+      ['Offer them the milk — you can come back later', 'Joke about it and suggest splitting somehow', 'Grab it quickly and walk away fast'],
+      ['Call for an employee to reset the machine', 'Start over at a different kiosk', 'Apologize to the line and bag slowly'],
+      ['Try the phone payment and hope it works', 'Run to your car for the wallet', 'Ask the person behind you to cover you'],
+    ],
+    outcomes: {
+      good: ['They appreciate the gesture. "You\'re sweet." Small kindness, good mood.', 'Employee fixes it in 30 seconds. Crisis over.'],
+      neutral: ['The joke lands okay. You both laugh. Neither gets the milk. Fine.', 'Phone payment works. Close call. You\'ll check next time.'],
+      bad: ['Grabbing it fast makes you the villain of aisle 7.', 'Asking a stranger to pay you back is as awkward as you feared.'],
+    },
+  },
+  {
+    category: 'everyday',
+    tone: 'everyday',
+    asciiKey: 'roommate_issue',
+    setups: [
+      'Your roommate hasn\'t done dishes in three weeks. The sink smells. They\'re gaming in the living room like nothing\'s wrong.',
+      'Your roommate keeps having loud calls at 2 AM. You have an exam tomorrow. This is the third time this week.',
+      'Someone ate your labeled food from the fridge. You know who it was. The sticky note said "DO NOT TOUCH."',
+    ],
+    optionPatterns: [
+      ['Have a direct conversation about the dishes', 'Clean them yourself but leave a pointed note', 'Stop cleaning entirely and let it escalate'],
+      ['Knock and ask them to keep it down', 'Put in earbuds and tough it out', 'Text the group chat about quiet hours'],
+      ['Confront them about the food calmly', 'Replace it and say nothing', 'Leave a passive-aggressive note on the fridge'],
+    ],
+    outcomes: {
+      good: ['They blush, apologize, and do the dishes. "Been in a funk, sorry." Problem solved.', 'They lower their voice immediately. "My bad, good luck tomorrow."'],
+      neutral: ['They do the dishes but act cold for a few days. At least it\'s clean.', 'Earbuds work. You pass the exam. Sleep debt remains.'],
+      bad: ['Letting it escalate turns into a screaming match about respect.', 'The passive-aggressive note starts a fridge war that lasts all month.'],
+    },
+  },
+  {
+    category: 'work',
+    tone: 'everyday',
+    asciiKey: 'work_deadline',
+    setups: [
+      'Friday 4:58 PM. Your boss drops a project due Monday. Your weekend plans are already booked — concert tickets, non-refundable.',
+      'A coworker asks you to cover their shift tomorrow. You already told your family you\'d visit. They look desperate.',
+      'You accidentally replied-all to an email with a complaint about your manager. Panic sets in.',
+    ],
+    optionPatterns: [
+      ['Negotiate for a Tuesday deadline with a good reason', 'Cancel your plans and get it done', 'Do a rushed half-job and hope it\'s enough'],
+      ['Cover the shift but ask them to return the favor', 'Say no — you have commitments too', 'Offer to help find someone else instead'],
+      ['Send a follow-up "please disregard" immediately', 'Own it and apologize to your manager directly', 'Pretend it didn\'t happen and hide'],
+    ],
+    outcomes: {
+      good: ['Boss respects the pushback. "Tuesday works. Enjoy the concert."', 'Your coworker covers for you next month. Fair trade.'],
+      neutral: ['Rushed work gets mild feedback Monday. You keep the weekend but pay for it.', 'Disregard email mostly works. One person definitely saw it though.'],
+      bad: ['Half-job gets you called into a meeting. Weekend ruined anyway.', 'Reply-all reaches your manager. Monday is very uncomfortable.'],
+    },
+  },
+  {
+    category: 'social',
+    tone: 'everyday',
+    asciiKey: 'party_invite',
+    setups: [
+      'You completely forgot your friend\'s birthday was today. It\'s 9 PM. Their story shows a party you weren\'t invited to — or forgot to RSVP.',
+      'A coworker\'s baby shower is tomorrow. You didn\'t buy a gift. The store closes in 30 minutes.',
+      'Your anniversary is today. Your partner hinted all week and you blanked. They\'re waiting at home.',
+    ],
+    optionPatterns: [
+      ['Call with a sincere apology and plan a belated celebration', 'Rush to buy a gift and show up first thing tomorrow', 'Pretend you planned a surprise for the weekend'],
+      ['Drive to the store now for a last-minute gift', 'Send money digitally with a heartfelt message', 'Admit you forgot and ask what they\'d like'],
+      ['Stop at a florist and a bakery on the way home', 'Be honest that you lost track of the date', 'Book a restaurant for tonight as emergency damage control'],
+    ],
+    outcomes: {
+      good: ['They\'re hurt but appreciate the honesty. Belated dinner next week heals it.', 'The emergency flowers work. "I can\'t stay mad." Crisis averted.'],
+      neutral: ['Weekend surprise is thin but they play along. Note to self: use a calendar.', 'Digital gift feels impersonal but acceptable.'],
+      bad: ['They knew you forgot. The pretend surprise makes it worse.', 'Honesty without a plan lands like an afterthought. Cold shoulder for days.'],
+    },
+  },
+  {
+    category: 'everyday',
+    tone: 'everyday',
+    asciiKey: 'car_repair',
+    setups: [
+      'Check engine light came on. You\'re broke until payday. The car still drives fine — probably fine?',
+      'Parking ticket on your windshield. $75. You were only gone 12 minutes. The meter definitely said 15 left.',
+      'Your landlord texts: rent is going up $200 next month. Your lease renews in two weeks.',
+    ],
+    optionPatterns: [
+      ['Take it to a shop for a diagnostic anyway', 'Ignore the light until payday', 'Ask a knowledgeable friend to check with an OBD reader'],
+      ['Pay the ticket and move on', 'Dispute it at city hall — you have time stamps', 'Leave it and risk the late fee doubling'],
+      ['Negotiate with the landlord for a smaller increase', 'Start looking for a cheaper place', 'Accept it and cut other expenses'],
+    ],
+    outcomes: {
+      good: ['Diagnostic is a loose gas cap. Free fix. Panic for nothing.', 'Dispute works. Ticket waived. Justice served.'],
+      neutral: ['Ignoring the light works for now. You\'ll check it on payday.', 'Negotiating gets you $100 increase instead. Small win.'],
+      bad: ['Ignoring it becomes a $1,200 repair in three weeks.', 'Late fee doubles. Should\'ve just paid it.'],
+    },
+  },
+  {
+    category: 'social',
+    tone: 'everyday',
+    asciiKey: 'awkward_moment',
+    setups: [
+      'Splitting the bill at dinner. You ordered light but everyone wants to split evenly. The math doesn\'t feel fair.',
+      'A friend asks if their new outfit looks good. It doesn\'t. They\'re clearly excited. Everyone is looking at you.',
+      'Someone at the gym corrects your form unsolicited. You weren\'t asking for help. People nearby are watching.',
+    ],
+    optionPatterns: [
+      ['Politely ask to pay only for what you ordered', 'Split evenly to avoid awkwardness', 'Suggest splitting food but not drinks'],
+      ['Find something genuine to compliment', 'Be honest but kind about what could be better', 'Deflect: "It\'s not my style but you rock it"'],
+      ['Thank them and adjust your form', 'Say "I\'ve got it, thanks" firmly', 'Ignore them and keep going'],
+    ],
+    outcomes: {
+      good: ['They respect the fair split. "Good call, I ate most of the appetizers anyway."', 'Genuine compliment lands. "You always know what to say."'],
+      neutral: ['You overpay by $12. Annoying, but dinner stays fun.', 'Deflecting works. Slightly awkward but nobody\'s feelings are destroyed.'],
+      bad: ['Pushing the bill split makes you "the cheap one" in the group chat later.', 'Honesty without tact ruins their night. They leave early.'],
+    },
+  },
+];
+
+const ALL_GENERAL_TEMPLATES = [...SCENARIO_TEMPLATES, ...REAL_LIFE_TEMPLATES];
+
 const HORROR_EXCLUSIVE_TEMPLATES = [
   {
     category: 'horror',
@@ -378,10 +623,10 @@ function getTemplatePool(mode, usedCategories) {
     return [...HORROR_EXCLUSIVE_TEMPLATES, ...horrorBase];
   }
 
-  const available = SCENARIO_TEMPLATES.filter(
-    (t) => !usedCategories.includes(t.category) || usedCategories.length > 3
+  const available = ALL_GENERAL_TEMPLATES.filter(
+    (t) => !usedCategories.includes(t.category) || usedCategories.length > 4
   );
-  return available.length ? available : SCENARIO_TEMPLATES;
+  return available.length ? available : ALL_GENERAL_TEMPLATES;
 }
 
 export function generateLocalScenario(round = 0, usedCategories = [], options = {}) {
@@ -390,13 +635,13 @@ export function generateLocalScenario(round = 0, usedCategories = [], options = 
 
   let template;
   if (mode === 'horror') {
-    const exclusive = HORROR_EXCLUSIVE_TEMPLATES;
     const pickExclusive = Math.random() < 0.55;
-    template = pickExclusive
-      ? pickRandom(exclusive)
-      : pickRandom(pool);
+    template = pickExclusive ? pickRandom(HORROR_EXCLUSIVE_TEMPLATES) : pickRandom(pool);
   } else {
-    template = pickRandom(pool);
+    const everydayPool = pool.filter((t) => t.tone === 'everyday');
+    const intensePool = pool.filter((t) => t.tone !== 'everyday');
+    const pickEveryday = everydayPool.length > 0 && Math.random() < 0.5;
+    template = pickRandom(pickEveryday ? everydayPool : intensePool.length ? intensePool : pool);
   }
 
   const setupIndex = Math.floor(Math.random() * template.setups.length);
@@ -413,6 +658,7 @@ export function generateLocalScenario(round = 0, usedCategories = [], options = 
     optionSetIndex,
     isAi: false,
     isCreepy: template.creepiness >= 8,
+    tone: template.tone || 'intense',
   };
 }
 
@@ -420,9 +666,15 @@ export function resolveChoice(scenario, optionIndex, round, mode = 'survival', c
   const resultType = evaluateChoice(optionIndex, round, mode);
   const outcomes = scenario.template.outcomes[resultType];
   const outcome = pickRandom(outcomes);
+  const isEveryday = scenario.tone === 'everyday' || scenario.template?.tone === 'everyday';
 
   let healthDelta = resultType === 'good' ? 0 : resultType === 'neutral' ? -10 : -25;
   let scoreDelta = resultType === 'good' ? 100 : resultType === 'neutral' ? 50 : 10;
+
+  if (isEveryday) {
+    healthDelta = resultType === 'good' ? 5 : resultType === 'neutral' ? -5 : -15;
+    scoreDelta = resultType === 'good' ? 80 : resultType === 'neutral' ? 45 : 15;
+  }
 
   if (mode === 'horror') {
     healthDelta = resultType === 'good' ? -5 : resultType === 'neutral' ? -18 : -35;
@@ -441,6 +693,7 @@ export function resolveChoice(scenario, optionIndex, round, mode = 'survival', c
   }
 
   let survived = resultType !== 'bad' || Math.random() > 0.3;
+  if (isEveryday) survived = resultType !== 'bad' || Math.random() > 0.85;
   if (mode === 'horror') survived = resultType !== 'bad' || Math.random() > 0.12;
   if (mode === 'endless' && resultType === 'bad') survived = Math.random() > 0.15 + round * 0.02;
 
@@ -458,7 +711,7 @@ export async function generateAiScenario(apiKey, round, previousChoices = [], op
   const { mode = 'survival' } = options;
   const context = previousChoices.length
     ? `Previous player choices: ${previousChoices.join('; ')}. Build on this story.`
-    : 'Start a new survival horror story.';
+    : 'Start a new scenario — mix real-life everyday situations with tense dramatic ones.';
 
   const modeHint = mode === 'horror'
     ? 'This is HORROR ONLY mode. Make it deeply disturbing, psychologically terrifying, and viscerally creepy. Use body horror, the uncanny, and dread.'
@@ -466,9 +719,9 @@ export async function generateAiScenario(apiKey, round, previousChoices = [], op
       ? `Endless mode round ${round + 1}. Escalate tension — this has been going on a long time.`
       : mode === 'arcade'
         ? 'Arcade mode — punchy, fast-paced, high-stakes scenario.'
-        : '';
+        : 'Mix everyday real-life scenarios (parties, work, relationships, car trouble, social awkwardness) with dramatic survival situations. About half should feel like normal life decisions.';
 
-  const prompt = `You are a text adventure game engine. Generate a tense, immersive survival scenario.
+  const prompt = `You are a text adventure game engine. Generate an immersive scenario where the player faces a meaningful choice.
 
 ${context}
 ${modeHint}
@@ -479,11 +732,11 @@ Respond ONLY with valid JSON in this exact format:
 {
   "setup": "2-3 sentence scenario description with dialogue if appropriate",
   "options": ["option 1", "option 2", "option 3"],
-  "asciiKey": "one of: bedroom_killer, dark_alley, elevator, forest, phone_call, car_breakdown, haunted_house, stranger_knock, survival_camp, hostage, zombie, mystery_box, mirror_horror, sleep_paralysis, doll_room, crawlspace, basement_whispers",
-  "category": "horror|thriller|survival|mystery"
+  "asciiKey": "one of: bedroom_killer, dark_alley, elevator, forest, phone_call, car_breakdown, haunted_house, stranger_knock, survival_camp, hostage, zombie, mystery_box, mirror_horror, sleep_paralysis, doll_room, crawlspace, basement_whispers, party_invite, car_repair, job_interview, awkward_moment, morning_rush, text_message, grocery_store, roommate_issue, work_deadline",
+  "category": "horror|thriller|survival|mystery|everyday|social|work"
 }
 
-Make options meaningfully different — risky, cautious, and clever. Be creative and vivid.`;
+Make options meaningfully different — risky, cautious, and clever. Real-life scenarios should feel relatable (skipping parties, fixing cars, awkward social moments, work stress).`;
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',

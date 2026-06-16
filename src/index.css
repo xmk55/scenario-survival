@@ -190,10 +190,6 @@ body {
   z-index: 1;
 }
 
-.floating-settings-btn {
-  z-index: 100;
-}
-
 [data-scanlines='true'] .app-bg::after {
   content: '';
   position: fixed;
@@ -308,7 +304,7 @@ body {
 
 /* Title Screen */
 .title-screen {
-  max-width: 720px;
+  max-width: 760px;
   width: 100%;
   text-align: center;
   animation: fade-in 0.6s ease;
@@ -529,6 +525,11 @@ body {
   box-shadow: inset 0 0 40px color-mix(in srgb, var(--color-danger) 8%, transparent);
 }
 
+.scenario-panel.everyday {
+  border-left-color: var(--color-success);
+  background: color-mix(in srgb, var(--color-success) 4%, var(--color-surface));
+}
+
 .game-screen.mode-horror .scenario-text {
   font-style: italic;
 }
@@ -586,6 +587,38 @@ body {
   color: var(--color-accent);
   border: 1px solid color-mix(in srgb, var(--color-accent) 30%, transparent);
   text-transform: capitalize;
+}
+
+.category-badge.cat-everyday {
+  background: color-mix(in srgb, var(--color-success) 15%, transparent);
+  color: var(--color-success);
+  border-color: color-mix(in srgb, var(--color-success) 30%, transparent);
+}
+
+.category-badge.cat-social {
+  background: color-mix(in srgb, var(--color-warning) 15%, transparent);
+  color: var(--color-warning);
+  border-color: color-mix(in srgb, var(--color-warning) 30%, transparent);
+}
+
+.category-badge.cat-work {
+  background: color-mix(in srgb, #6b9fff 15%, transparent);
+  color: #6b9fff;
+  border-color: color-mix(in srgb, #6b9fff 30%, transparent);
+}
+
+.category-badge.cat-horror {
+  background: color-mix(in srgb, var(--color-danger) 15%, transparent);
+  color: var(--color-danger);
+  border-color: color-mix(in srgb, var(--color-danger) 30%, transparent);
+}
+
+.category-badge.cat-thriller,
+.category-badge.cat-survival,
+.category-badge.cat-mystery {
+  background: color-mix(in srgb, var(--color-accent) 15%, transparent);
+  color: var(--color-accent);
+  border-color: color-mix(in srgb, var(--color-accent) 30%, transparent);
 }
 
 .ai-badge {
@@ -679,7 +712,7 @@ body {
 
 .scenario-text {
   font-size: 1.1rem;
-  line-height: 1.7;
+  line-height: 1.75;
   color: var(--color-text);
 }
 
@@ -881,33 +914,6 @@ body {
 .end-actions {
   display: flex;
   justify-content: center;
-}
-
-/* Floating Settings */
-.floating-settings-btn {
-  position: fixed;
-  bottom: 1.5rem;
-  right: 1.5rem;
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  color: var(--color-textMuted);
-  font-size: 1.3rem;
-  cursor: pointer;
-  transition: all 0.2s;
-  z-index: 100;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-}
-
-.floating-settings-btn:hover {
-  color: var(--color-accent);
-  border-color: var(--color-accent);
-  transform: rotate(45deg);
 }
 
 /* Settings Panel */

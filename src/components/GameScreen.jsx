@@ -3,11 +3,29 @@ import AsciiDisplay from './AsciiDisplay';
 import OptionButtons from './OptionButtons';
 import { useSound } from '../context/SoundContext';
 
-function HealthBar({ health }) {
+const CATEGORY_LABELS = {
+  horror: 'Horror',
+  thriller: 'Thriller',
+  survival: 'Survival',
+  mystery: 'Mystery',
+  everyday: 'Everyday Life',
+  social: 'Social',
+  work: 'Work',
+};
+
+const LOADING_TEXTS = {
+  horror: 'Something stirs in the dark...',
+  everyday: 'Life throws another curveball...',
+  social: 'An awkward moment approaches...',
+  work: 'Another day, another dilemma...',
+  default: 'Preparing your next scenario...',
+};
+
+function HealthBar({ health, isEveryday }) {
   const color = health > 60 ? 'var(--color-success)' : health > 30 ? 'var(--color-warning)' : 'var(--color-danger)';
   return (
     <div className="health-bar">
-      <span className="stat-label">Health</span>
+      <span className="stat-label">{isEveryday ? 'Wellbeing' : 'Health'}</span>
       <div className="health-track">
         <div className="health-fill" style={{ width: `${health}%`, background: color }} />
       </div>
@@ -30,8 +48,10 @@ function TimerBar({ timeLeft, maxTime }) {
   );
 }
 
-function ResultBadge({ type }) {
-  const labels = { good: 'Smart Move', neutral: 'Close Call', bad: 'Critical' };
+function ResultBadge({ type, isEveryday }) {
+  const labels = isEveryday
+    ? { good: 'Nice One', neutral: 'Could Be Worse', bad: 'Rough Call' }
+    : { good: 'Smart Move', neutral: 'Close Call', bad: 'Critical' };
   return <span className={`result-badge result-${type}`}>{labels[type] || type}</span>;
 }
 
@@ -157,9 +177,11 @@ export default function GameScreen({
     );
   }
 
+  const isEveryday = scenario?.tone === 'everyday';
+  const categoryLabel = CATEGORY_LABELS[scenario?.category] || scenario?.category;
   const loadingText = modeConfig.id === 'horror'
-    ? 'Something stirs in the dark...'
-    : 'Generating your next nightmare...';
+    ? LOADING_TEXTS.horror
+    : LOADING_TEXTS[scenario?.category] || LOADING_TEXTS.default;
 
   return (
     <div className={`game-screen mode-${modeConfig.id}`}>
@@ -170,7 +192,7 @@ export default function GameScreen({
           </span>
           <span className="round-badge">{roundLabel}</span>
           {scenario?.category && (
-            <span className="category-badge">{scenario.category}</span>
+            <span className={`category-badge cat-${scenario.category}`}>{categoryLabel}</span>
           )}
           {scenario?.isCreepy && <span className="creepy-badge">☠️ Nightmare</span>}
           {scenario?.isAi && <span className="ai-badge">AI</span>}
@@ -183,7 +205,7 @@ export default function GameScreen({
         </div>
       </header>
 
-      <HealthBar health={health} />
+      <HealthBar health={health} isEveryday={isEveryday} />
       {modeConfig.timed && timeLeft !== null && (
         <TimerBar timeLeft={timeLeft} maxTime={modeConfig.timePerRound} />
       )}
@@ -195,7 +217,7 @@ export default function GameScreen({
       <main className="game-main">
         {phase === 'result' && lastResult ? (
           <div className="result-panel">
-            <ResultBadge type={lastResult.resultType} />
+            <ResultBadge type={lastResult.resultType} isEveryday={isEveryday} />
             {lastResult.comboBonus > 0 && (
               <p className="combo-bonus">Combo bonus! x{lastResult.comboBonus + 1} multiplier</p>
             )}
@@ -211,7 +233,7 @@ export default function GameScreen({
           </div>
         ) : (
           <>
-            <div className={`scenario-panel ${scenario?.isCreepy ? 'creepy' : ''}`}>
+            <div className={`scenario-panel ${scenario?.isCreepy ? 'creepy' : ''} ${isEveryday ? 'everyday' : ''}`}>
               {loading && !scenario ? (
                 <p className="scenario-text loading-text">{loadingText}</p>
               ) : (
@@ -233,7 +255,7 @@ export default function GameScreen({
             {phase === 'resolving' && (
               <div className="resolving-indicator">
                 <span className="pulse-dot" />
-                Resolving your fate...
+                Resolving...
               </div>
             )}
           </>
