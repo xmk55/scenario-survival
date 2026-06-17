@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useSound } from '../context/SoundContext';
 
-export default function OptionButtons({ options, onSelect, disabled, selectedIndex }) {
+export default function OptionButtons({ options, onSelect, disabled, selectedIndex, isHorror, isCreepy }) {
   const { play } = useSound();
+  const horror = isHorror || isCreepy;
 
   return (
     <div className="options-grid">
@@ -11,10 +12,10 @@ export default function OptionButtons({ options, onSelect, disabled, selectedInd
           key={index}
           className={`option-btn ${selectedIndex === index ? 'selected' : ''}`}
           onClick={() => {
-            play('select');
+            play(horror ? 'horrorSelectChoice' : 'select');
             onSelect(index);
           }}
-          onMouseEnter={() => play('hover')}
+          onMouseEnter={() => play(horror ? 'horrorHover' : 'hover')}
           disabled={disabled}
         >
           <span className="option-key">{index + 1}</span>

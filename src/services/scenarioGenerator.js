@@ -629,24 +629,34 @@ function getTemplatePool(mode, usedCategories) {
   return available.length ? available : ALL_GENERAL_TEMPLATES;
 }
 
-export function generateLocalScenario(round = 0, usedCategories = [], options = {}) {
-  const { mode = 'survival' } = options;
-  const pool = getTemplatePool(mode, usedCategories);
+function getVariantFingerprint(template, setupIndex, optionSetIndex) {
+  return `${template.asciiKey}:${setupIndex}:${optionSetIndex}`;
+}
 
-  let template;
-  if (mode === 'horror') {
-    const pickExclusive = Math.random() < 0.55;
-    template = pickExclusive ? pickRandom(HORROR_EXCLUSIVE_TEMPLATES) : pickRandom(pool);
-  } else {
-    const everydayPool = pool.filter((t) => t.tone === 'everyday');
-    const intensePool = pool.filter((t) => t.tone !== 'everyday');
-    const pickEveryday = everydayPool.length > 0 && Math.random() < 0.5;
-    template = pickRandom(pickEveryday ? everydayPool : intensePool.length ? intensePool : pool);
+export function getScenarioFingerprint(scenario) {
+  if (!scenario) return '';
+  if (scenario.fingerprint) return scenario.fingerprint;
+  if (scenario.isAi) return `ai:${(scenario.setup || '').trim().slice(0, 160)}`;
+  if (scenario.setupIndex !== undefined && scenario.optionSetIndex !== undefined) {
+    return getVariantFingerprint(scenario.template || { asciiKey: scenario.asciiKey }, scenario.setupIndex, scenario.optionSetIndex);
   }
+  return `${scenario.asciiKey}:${(scenario.setup || '').trim().slice(0, 80)}`;
+}
 
-  const setupIndex = Math.floor(Math.random() * template.setups.length);
-  const optionSetIndex = Math.floor(Math.random() * template.optionPatterns.length);
+function enumerateVariants(pool) {
+  const variants = [];
+  for (const template of pool) {
+    for (let s = 0; s < template.setups.length; s++) {
+      for (let o = 0; o < template.optionPatterns.length; o++) {
+        variants.push({ template, setupIndex: s, optionSetIndex: o });
+      }
+    }
+  }
+  return variants;
+}
 
+function buildScenarioFromVariant(template, setupIndex, optionSetIndex) {
+  const fingerprint = getVariantFingerprint(template, setupIndex, optionSetIndex);
   return {
     id: `local-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     category: template.category,
@@ -656,10 +666,66 @@ export function generateLocalScenario(round = 0, usedCategories = [], options = 
     template,
     setupIndex,
     optionSetIndex,
+    fingerprint,
     isAi: false,
     isCreepy: template.creepiness >= 8,
     tone: template.tone || 'intense',
   };
+}
+
+function pickWeightedVariant(variants, mode) {
+  if (mode === 'horror') {
+    const exclusiveKeys = new Set(HORROR_EXCLUSIVE_TEMPLATES.map((t) => t.asciiKey));
+    const exclusive = variants.filter((v) => exclusiveKeys.has(v.template.asciiKey));
+    if (exclusive.length && Math.random() < 0.55) {
+      return pickRandom(exclusive);
+    }
+    return pickRandom(variants);
+  }
+
+  const everyday = variants.filter((v) => v.template.tone === 'everyday');
+  const intense = variants.filter((v) => v.template.tone !== 'everyday');
+
+  if (everyday.length && intense.length && Math.random() < 0.5) {
+    return pickRandom(everyday);
+  }
+  return pickRandom(intense.length ? intense : variants);
+}
+
+export function getAvailableScenarioCount(mode = 'survival') {
+  return enumerateVariants(getTemplatePool(mode, [])).length;
+}
+
+export function generateLocalScenario(round = 0, usedCategories = [], options = {}) {
+  const {
+    mode = 'survival',
+    playedFingerprints = [],
+    allowRepeats = false,
+  } = options;
+
+  const pool = getTemplatePool(mode, usedCategories);
+  const allVariants = enumerateVariants(pool);
+  const playedSet = new Set(playedFingerprints);
+
+  let candidateVariants = allVariants;
+  let poolRefreshed = false;
+
+  if (!allowRepeats && playedSet.size > 0) {
+    const unplayed = allVariants.filter(
+      (v) => !playedSet.has(getVariantFingerprint(v.template, v.setupIndex, v.optionSetIndex))
+    );
+    if (unplayed.length > 0) {
+      candidateVariants = unplayed;
+    } else {
+      candidateVariants = allVariants;
+      poolRefreshed = true;
+    }
+  }
+
+  const picked = pickWeightedVariant(candidateVariants, mode);
+  const scenario = buildScenarioFromVariant(picked.template, picked.setupIndex, picked.optionSetIndex);
+  if (poolRefreshed) scenario.poolRefreshed = true;
+  return scenario;
 }
 
 export function resolveChoice(scenario, optionIndex, round, mode = 'survival', combo = 0) {
@@ -708,10 +774,19 @@ export function resolveChoice(scenario, optionIndex, round, mode = 'survival', c
 }
 
 export async function generateAiScenario(apiKey, round, previousChoices = [], options = {}) {
-  const { mode = 'survival' } = options;
+  const { mode = 'survival', playedFingerprints = [], allowRepeats = false } = options;
   const context = previousChoices.length
     ? `Previous player choices: ${previousChoices.join('; ')}. Build on this story.`
     : 'Start a new scenario — mix real-life everyday situations with tense dramatic ones.';
+
+  const playedSetups = playedFingerprints
+    .filter((f) => f.startsWith('ai:'))
+    .map((f) => f.slice(3))
+    .slice(-12);
+
+  const noRepeatRule = !allowRepeats && playedSetups.length
+    ? `\nDO NOT repeat or closely rephrase these already-used scenarios:\n${playedSetups.map((s, i) => `${i + 1}. ${s}`).join('\n')}\nCreate something clearly different.`
+    : '';
 
   const modeHint = mode === 'horror'
     ? 'This is HORROR ONLY mode. Make it deeply disturbing, psychologically terrifying, and viscerally creepy. Use body horror, the uncanny, and dread.'
@@ -725,6 +800,7 @@ export async function generateAiScenario(apiKey, round, previousChoices = [], op
 
 ${context}
 ${modeHint}
+${noRepeatRule}
 
 Round: ${round + 1}
 
@@ -764,13 +840,15 @@ Make options meaningfully different — risky, cautious, and clever. Real-life s
   const content = data.choices[0].message.content.trim();
   const jsonStr = content.replace(/```json\n?|\n?```/g, '');
   const parsed = JSON.parse(jsonStr);
+  const setup = parsed.setup;
 
   return {
     id: `ai-${Date.now()}`,
     category: parsed.category || 'mystery',
     asciiKey: parsed.asciiKey || 'default',
-    setup: parsed.setup,
+    setup,
     options: parsed.options.slice(0, 3),
+    fingerprint: `ai:${setup.trim().slice(0, 160)}`,
     isAi: true,
   };
 }

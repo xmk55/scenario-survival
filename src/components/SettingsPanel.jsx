@@ -3,6 +3,7 @@ import ThemeEditor from './ThemeEditor';
 import { createCustomTheme } from '../data/themePresets';
 import { useSound } from '../context/SoundContext';
 import { playSound, unlockAudio } from '../services/soundEngine';
+import { getAvailableScenarioCount } from '../services/scenarioGenerator';
 
 export default function SettingsPanel({
   theme,
@@ -13,13 +14,15 @@ export default function SettingsPanel({
   deleteCustomTheme,
   apiKey,
   useAi,
+  allowRepeats,
   saveApiSettings,
   onClose,
 }) {
-  const { enabled: soundEnabled, volume, play, saveSoundSettings } = useSound();
+  const { enabled: soundEnabled, volume, play, saveSoundSettings, soundCatalog } = useSound();
   const [editingTheme, setEditingTheme] = useState(null);
   const [localApiKey, setLocalApiKey] = useState(apiKey);
   const [localUseAi, setLocalUseAi] = useState(useAi);
+  const [localAllowRepeats, setLocalAllowRepeats] = useState(allowRepeats);
   const [localSoundEnabled, setLocalSoundEnabled] = useState(soundEnabled);
   const [localVolume, setLocalVolume] = useState(volume);
 
@@ -39,7 +42,7 @@ export default function SettingsPanel({
   };
 
   const handleSaveSettings = () => {
-    saveApiSettings(localApiKey, localUseAi);
+    saveApiSettings(localApiKey, localUseAi, localAllowRepeats);
     saveSoundSettings(localSoundEnabled, localVolume);
     play('continue');
     onClose();
@@ -63,7 +66,9 @@ export default function SettingsPanel({
           <div className="settings-body">
             <section className="settings-section">
               <h3>Sound Effects</h3>
-              <p className="settings-desc">8-bit poofs, clicks, and chimes for every action.</p>
+              <p className="settings-desc">
+                60+ 8-bit sounds across UI, gameplay, arcade, everyday life, and horror — plus ambient dread in Horror mode.
+              </p>
               <label className="toggle-field">
                 <input
                   type="checkbox"
@@ -83,12 +88,25 @@ export default function SettingsPanel({
                   onChange={(e) => setLocalVolume(parseFloat(e.target.value))}
                 />
               </label>
-              <div className="sound-test-row">
-                <button type="button" className="btn btn-secondary small-btn" onClick={() => testSound('click')}>Click</button>
-                <button type="button" className="btn btn-secondary small-btn" onClick={() => testSound('poof')}>Poof</button>
-                <button type="button" className="btn btn-secondary small-btn" onClick={() => testSound('select')}>Select</button>
-                <button type="button" className="btn btn-secondary small-btn" onClick={() => testSound('good')}>Good</button>
-                <button type="button" className="btn btn-secondary small-btn" onClick={() => testSound('bad')}>Bad</button>
+              <div className="sound-catalog">
+                {Object.entries(soundCatalog).map(([category, sounds]) => (
+                  <div key={category} className="sound-catalog-group">
+                    <h4 className="sound-catalog-label">{category}</h4>
+                    <div className="sound-test-row">
+                      {sounds.map((name) => (
+                        <button
+                          key={name}
+                          type="button"
+                          className={`btn btn-secondary small-btn sound-test-btn ${category === 'horror' ? 'horror-sound-btn' : ''}`}
+                          onClick={() => testSound(name)}
+                          title={name}
+                        >
+                          {name.replace(/([A-Z])/g, ' $1').trim()}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
               </div>
             </section>
 
@@ -128,6 +146,26 @@ export default function SettingsPanel({
               <button className="btn btn-secondary full-width" onClick={handleCreateTheme}>
                 + Create Custom Theme
               </button>
+            </section>
+
+            <section className="settings-section">
+              <h3>Gameplay</h3>
+              <p className="settings-desc">
+                Each run tracks scenarios you have already seen. With repeats off, you get a fresh scenario every round until the pool runs out ({getAvailableScenarioCount('survival')} unique local variants across all modes).
+              </p>
+              <label className="toggle-field">
+                <input
+                  type="checkbox"
+                  checked={localAllowRepeats}
+                  onChange={(e) => setLocalAllowRepeats(e.target.checked)}
+                />
+                Allow repeat scenarios
+              </label>
+              <p className="settings-note">
+                {localAllowRepeats
+                  ? 'Scenarios you have already played may appear again during a run.'
+                  : 'You will not see the same scenario twice in one run (pool refreshes after all unique scenarios are used).'}
+              </p>
             </section>
 
             <section className="settings-section">

@@ -122,9 +122,13 @@ export default function GameScreen({
   onMenu,
   onRetry,
 }) {
-  const { play } = useSound();
+  const { play, beginHorrorAmbience, endHorrorAmbience } = useSound();
   const prevPhase = useRef(phase);
   const prevScenarioId = useRef(null);
+  const prevCombo = useRef(0);
+  const prevHealth = useRef(health);
+  const isHorrorMode = modeConfig.id === 'horror';
+  const isEveryday = scenario?.tone === 'everyday';
 
   const isEndless = modeConfig.endless;
   const roundLabel = isEndless
@@ -133,35 +137,94 @@ export default function GameScreen({
 
   useEffect(() => {
     if (phase === 'result' && lastResult) {
-      play(lastResult.resultType === 'good' ? 'good' : lastResult.resultType === 'bad' ? 'bad' : 'neutral');
+      const creepy = scenario?.isCreepy || isHorrorMode;
+      if (isHorrorMode || creepy) {
+        if (lastResult.resultType === 'good') play('horrorGood');
+        else if (lastResult.resultType === 'bad') play('horrorBad');
+        else play('dread');
+      } else if (lastResult.resultType === 'good') {
+        play(isEveryday ? 'relief' : 'good');
+      } else if (lastResult.resultType === 'bad') {
+        play(health <= 20 ? 'critical' : 'bad');
+      } else {
+        play('neutral');
+      }
     }
-  }, [phase, lastResult, play]);
+  }, [phase, lastResult, play, isHorrorMode, scenario?.isCreepy, health, isEveryday]);
 
   useEffect(() => {
-    if (phase === 'gameover' && prevPhase.current !== 'gameover') play('gameover');
-    if (phase === 'victory' && prevPhase.current !== 'victory') play('victory');
+    const prev = prevPhase.current;
+
+    if (phase === 'gameover' && prev !== 'gameover') {
+      endHorrorAmbience();
+      play(isHorrorMode ? 'horrorGameover' : 'gameover');
+      if (newRecord) setTimeout(() => play('record'), 600);
+    }
+    if (phase === 'victory' && prev !== 'victory') {
+      endHorrorAmbience();
+      play(isHorrorMode ? 'horrorVictory' : 'victory');
+      if (newRecord) setTimeout(() => play('record'), 500);
+    }
+    if (phase === 'resolving' && prev === 'playing') {
+      play(isHorrorMode ? 'dread' : 'suspense');
+    }
+
     prevPhase.current = phase;
-  }, [phase, play]);
+  }, [phase, play, isHorrorMode, newRecord, endHorrorAmbience]);
+
+  useEffect(() => {
+    if (isHorrorMode && (phase === 'playing' || phase === 'result' || phase === 'resolving')) {
+      beginHorrorAmbience();
+    } else {
+      endHorrorAmbience();
+    }
+    return () => endHorrorAmbience();
+  }, [isHorrorMode, phase, beginHorrorAmbience, endHorrorAmbience]);
 
   useEffect(() => {
     if (scenario?.id && scenario.id !== prevScenarioId.current && phase === 'playing') {
-      play('scenario');
+      const creepy = scenario.isCreepy || isHorrorMode;
+      if (isHorrorMode || creepy) play('horrorReveal');
+      else if (scenario.tone === 'everyday') {
+        const everydaySounds = ['everydayReveal', 'phoneBuzz', 'awkward', 'workStress', 'sigh'];
+        play(everydaySounds[Math.floor(Math.random() * everydaySounds.length)]);
+      } else if (scenario.category === 'mystery') play('mystery');
+      else play('scenario');
       prevScenarioId.current = scenario.id;
     }
-  }, [scenario?.id, phase, play]);
+  }, [scenario?.id, scenario?.isCreepy, scenario?.tone, scenario?.category, phase, play, isHorrorMode]);
 
   useEffect(() => {
     if (timeLeft !== null && timeLeft <= 10 && timeLeft > 0 && phase === 'playing') {
-      play('tick');
+      play(modeConfig.timed ? 'tickUrgent' : 'tick');
     }
-  }, [timeLeft, phase, play]);
+  }, [timeLeft, phase, play, modeConfig.timed]);
+
+  useEffect(() => {
+    if (modeConfig.id === 'arcade' && combo > prevCombo.current && combo > 0) {
+      play('comboUp');
+    }
+    if (modeConfig.id === 'arcade' && combo === 0 && prevCombo.current > 0) {
+      play('comboBreak');
+    }
+    prevCombo.current = combo;
+  }, [combo, modeConfig.id, play]);
+
+  useEffect(() => {
+    if (health < prevHealth.current && phase === 'playing') {
+      if (isHorrorMode && health <= 30) play('horrorLowHealth');
+      else if (health <= 25) play('lowHealth');
+      else play('damage');
+    }
+    prevHealth.current = health;
+  }, [health, phase, play, isHorrorMode]);
 
   useEffect(() => {
     const handler = (e) => {
       if (phase === 'playing' && !loading && scenario) {
         const key = parseInt(e.key, 10);
         if (key >= 1 && key <= 3) {
-          play('select');
+          play(isHorrorMode || scenario?.isCreepy ? 'horrorSelectChoice' : 'select');
           onSelectOption(key - 1);
         }
       }
@@ -239,7 +302,6 @@ export default function GameScreen({
     );
   }
 
-  const isEveryday = scenario?.tone === 'everyday';
   const categoryLabel = CATEGORY_LABELS[scenario?.category] || scenario?.category;
   const loadingText = modeConfig.id === 'horror'
     ? LOADING_TEXTS.horror
@@ -274,6 +336,9 @@ export default function GameScreen({
       )}
 
       {error && <div className="error-banner">{error}</div>}
+      {scenario?.poolRefreshed && (
+        <div className="info-banner">You have seen every scenario — the pool has been refreshed.</div>
+      )}
 
       <AsciiDisplay
         asciiKey={scenario?.asciiKey}
@@ -320,6 +385,8 @@ export default function GameScreen({
                   options={scenario.options}
                   onSelect={onSelectOption}
                   disabled={loading || phase === 'resolving'}
+                  isHorror={isHorrorMode}
+                  isCreepy={scenario?.isCreepy}
                 />
               </div>
             )}

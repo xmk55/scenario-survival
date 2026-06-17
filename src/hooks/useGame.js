@@ -4,6 +4,7 @@ import {
   resolveChoice,
   generateAiScenario,
   resolveAiChoice,
+  getScenarioFingerprint,
 } from '../services/scenarioGenerator';
 import { GAME_MODES, saveHighScore } from '../data/gameModes';
 
@@ -29,6 +30,10 @@ export function useGame() {
   const [lastScenario, setLastScenario] = useState(null);
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('scenario-survival-api-key') || '');
   const [useAi, setUseAi] = useState(() => localStorage.getItem('scenario-survival-use-ai') === 'true');
+  const [allowRepeats, setAllowRepeats] = useState(
+    () => localStorage.getItem('scenario-survival-allow-repeats') === 'true'
+  );
+  const [playedFingerprints, setPlayedFingerprints] = useState([]);
   const timerRef = useRef(null);
   const timedOutRef = useRef(false);
 
@@ -59,17 +64,25 @@ export function useGame() {
     }, 1000);
   }, [modeConfig.timed, modeConfig.timePerRound, clearTimer]);
 
-  const saveApiSettings = useCallback((key, ai) => {
+  const saveApiSettings = useCallback((key, ai, repeats) => {
     setApiKey(key);
     setUseAi(ai);
+    if (repeats !== undefined) {
+      setAllowRepeats(repeats);
+      localStorage.setItem('scenario-survival-allow-repeats', String(repeats));
+    }
     localStorage.setItem('scenario-survival-api-key', key);
     localStorage.setItem('scenario-survival-use-ai', String(ai));
   }, []);
 
-  const loadScenario = useCallback(async (currentRound, categories, history, mode) => {
+  const loadScenario = useCallback(async (currentRound, categories, history, mode, played) => {
     setLoading(true);
     setError(null);
-    const genOptions = { mode };
+    const genOptions = {
+      mode,
+      playedFingerprints: played,
+      allowRepeats,
+    };
     try {
       let next;
       if (useAi && apiKey) {
@@ -78,16 +91,32 @@ export function useGame() {
         next = generateLocalScenario(currentRound, categories, genOptions);
       }
       setScenario(next);
+      const fingerprint = getScenarioFingerprint(next);
+      if (next.poolRefreshed) {
+        setPlayedFingerprints(fingerprint ? [fingerprint] : []);
+      } else {
+        setPlayedFingerprints((prev) => (
+          fingerprint && !prev.includes(fingerprint) ? [...prev, fingerprint] : prev
+        ));
+      }
       setUsedCategories((prev) => [...prev, next.category]);
     } catch (err) {
       setError(err.message || 'Failed to generate scenario. Using local generator.');
       const fallback = generateLocalScenario(currentRound, categories, genOptions);
       setScenario(fallback);
+      const fingerprint = getScenarioFingerprint(fallback);
+      if (fallback.poolRefreshed) {
+        setPlayedFingerprints(fingerprint ? [fingerprint] : []);
+      } else {
+        setPlayedFingerprints((prev) => (
+          fingerprint && !prev.includes(fingerprint) ? [...prev, fingerprint] : prev
+        ));
+      }
       setUsedCategories((prev) => [...prev, fallback.category]);
     } finally {
       setLoading(false);
     }
-  }, [useAi, apiKey]);
+  }, [useAi, apiKey, allowRepeats]);
 
   const startGame = useCallback(async (mode = 'survival') => {
     const config = GAME_MODES[mode] || GAME_MODES.survival;
@@ -105,8 +134,9 @@ export function useGame() {
     setDeathInfo(null);
     setRunStats({ good: 0, neutral: 0, bad: 0 });
     setLastScenario(null);
+    setPlayedFingerprints([]);
     timedOutRef.current = false;
-    await loadScenario(0, [], [], mode);
+    await loadScenario(0, [], [], mode, []);
     startRoundTimer();
   }, [loadScenario, startRoundTimer]);
 
@@ -226,9 +256,9 @@ export function useGame() {
     setPhase('playing');
     setLastResult(null);
     timedOutRef.current = false;
-    await loadScenario(round, usedCategories, choiceHistory, gameMode);
+    await loadScenario(round, usedCategories, choiceHistory, gameMode, playedFingerprints);
     startRoundTimer();
-  }, [phase, round, usedCategories, choiceHistory, gameMode, loadScenario, startRoundTimer]);
+  }, [phase, round, usedCategories, choiceHistory, gameMode, playedFingerprints, loadScenario, startRoundTimer]);
 
   const goToMenu = useCallback(() => {
     clearTimer();
@@ -273,6 +303,8 @@ export function useGame() {
     lastScenario,
     apiKey,
     useAi,
+    allowRepeats,
+    playedFingerprints,
     startGame,
     selectOption,
     continueGame,

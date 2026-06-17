@@ -9,18 +9,18 @@ export default function TitleScreen({ onStart, onSettings }) {
 
   const handleStart = () => {
     unlock();
-    play('start');
+    play(selectedMode === 'horror' ? 'horrorStart' : 'start');
     onStart(selectedMode);
   };
 
   const handleSettings = () => {
     unlock();
-    play('click');
+    play('open');
     onSettings();
   };
 
   const selectMode = (id) => {
-    play('click');
+    play(id === 'horror' ? 'horrorSelect' : 'click');
     setSelectedMode(id);
   };
 

@@ -58,6 +58,7 @@ export default function App() {
           deleteCustomTheme={themeHook.deleteCustomTheme}
           apiKey={game.apiKey}
           useAi={game.useAi}
+          allowRepeats={game.allowRepeats}
           saveApiSettings={game.saveApiSettings}
           onClose={() => setShowSettings(false)}
         />
