@@ -24,6 +24,7 @@
   --color-danger: #ff4757;
   --color-warning: #ffb347;
   --color-ascii: #7ee8a8;
+  --color-asciiGlow: #7ee8a833;
   --color-optionBg: #1a1a28;
   --color-optionBorder: #3a3a50;
   --color-optionHover: #252538;
@@ -548,7 +549,7 @@ body {
 
 /* Game Screen */
 .game-screen {
-  max-width: 800px;
+  max-width: 900px;
   width: 100%;
   animation: fade-in 0.4s ease;
 }
@@ -674,30 +675,85 @@ body {
   margin-bottom: 1.5rem;
 }
 
+.ascii-scene-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-ascii);
+  margin-bottom: 0.5rem;
+  padding-left: 0.25rem;
+}
+
+.ascii-scene-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-ascii);
+  box-shadow: 0 0 10px var(--color-asciiGlow, var(--color-ascii));
+  animation: ascii-pulse 2s ease infinite;
+}
+
+@keyframes ascii-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(0.85); }
+}
+
 .ascii-frame {
   background: var(--color-bgSecondary);
-  border: 1px solid var(--color-border);
+  border: 2px solid color-mix(in srgb, var(--color-ascii) 35%, var(--color-border));
   border-radius: var(--border-radius);
-  padding: 1rem;
+  padding: 1.25rem 1.5rem;
   overflow-x: auto;
   box-shadow:
-    inset 0 0 30px color-mix(in srgb, var(--color-ascii) 5%, transparent),
-    0 0 20px color-mix(in srgb, var(--color-borderGlow) calc(var(--glow-intensity) * 100%), transparent);
+    inset 0 0 50px color-mix(in srgb, var(--color-ascii) 8%, transparent),
+    0 0 30px var(--color-asciiGlow, color-mix(in srgb, var(--color-ascii) 20%, transparent)),
+    0 4px 24px rgba(0, 0, 0, 0.25);
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.ascii-frame.ascii-cat-everyday,
+.ascii-frame.ascii-cat-social,
+.ascii-frame.ascii-cat-work {
+  border-color: color-mix(in srgb, var(--color-ascii) 50%, var(--color-success));
+}
+
+.ascii-frame.ascii-cat-horror,
+.ascii-frame.ascii-creepy {
+  border-color: color-mix(in srgb, var(--color-ascii) 40%, var(--color-danger));
+  box-shadow:
+    inset 0 0 50px color-mix(in srgb, var(--color-danger) 10%, transparent),
+    0 0 30px var(--color-asciiGlow, color-mix(in srgb, var(--color-ascii) 25%, transparent));
 }
 
 .ascii-art {
   font-family: var(--font-mono);
-  font-size: clamp(0.55rem, 2vw, 0.7rem);
+  font-size: clamp(0.65rem, 2.8vw, 0.82rem);
   color: var(--color-ascii);
-  line-height: 1.3;
+  line-height: 1.25;
   white-space: pre;
   margin: 0 auto;
   text-align: center;
-  text-shadow: 0 0 8px color-mix(in srgb, var(--color-ascii) 30%, transparent);
+  text-shadow:
+    0 0 12px var(--color-asciiGlow, color-mix(in srgb, var(--color-ascii) 40%, transparent)),
+    0 0 24px color-mix(in srgb, var(--color-ascii) 15%, transparent);
+}
+
+.ascii-size-large .ascii-frame {
+  padding: 1.75rem 2rem;
+}
+
+.ascii-size-large .ascii-art {
+  font-size: clamp(0.75rem, 3.5vw, 1rem);
+  line-height: 1.2;
 }
 
 .ascii-loading {
   animation: pulse 1.5s ease infinite;
+  color: var(--color-ascii);
 }
 
 /* Scenario */
@@ -874,7 +930,7 @@ body {
 
 /* End Screens */
 .end-screen {
-  max-width: 500px;
+  max-width: 720px;
   width: 100%;
   text-align: center;
   animation: fade-in 0.5s ease;
@@ -882,10 +938,11 @@ body {
 
 .end-ascii {
   font-family: var(--font-mono);
-  font-size: 0.65rem;
+  font-size: clamp(0.7rem, 2.5vw, 0.85rem);
   color: var(--color-ascii);
   margin-bottom: 1.5rem;
   line-height: 1.3;
+  text-shadow: 0 0 12px var(--color-asciiGlow, color-mix(in srgb, var(--color-ascii) 30%, transparent));
 }
 
 .end-screen h2 {
@@ -914,6 +971,109 @@ body {
 .end-actions {
   display: flex;
   justify-content: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+/* Death Recap */
+.death-recap {
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto 1.5rem;
+  text-align: left;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--color-danger);
+  border-radius: var(--border-radius);
+  padding: 1.25rem 1.5rem;
+  animation: slide-up 0.5s ease;
+}
+
+.death-recap-title {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--color-danger);
+  margin-bottom: 0.75rem;
+}
+
+.death-cause-badge {
+  display: inline-block;
+  padding: 0.35rem 0.9rem;
+  background: color-mix(in srgb, var(--color-danger) 18%, transparent);
+  color: var(--color-danger);
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  margin-bottom: 0.6rem;
+}
+
+.death-cause-explanation {
+  color: var(--color-textMuted);
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.death-scenario-setup {
+  font-size: 0.9rem;
+  color: var(--color-textMuted);
+  font-style: italic;
+  margin: 0.75rem 0 1rem;
+  padding-left: 0.75rem;
+  border-left: 2px solid var(--color-border);
+}
+
+.death-detail-box {
+  background: var(--color-bgTertiary);
+  border-radius: var(--border-radius);
+  padding: 1rem;
+  margin-top: 1rem;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.death-detail-box p + p {
+  margin-top: 0.75rem;
+}
+
+.death-detail-box strong {
+  color: var(--color-text);
+}
+
+/* Run Stats */
+.run-stats-bar {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+
+.game-header-right .run-stats-bar {
+  margin-top: 0;
+}
+
+.run-stat {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  background: var(--color-bgTertiary);
+  border: 1px solid var(--color-border);
+}
+
+.run-stat-good { color: var(--color-success); }
+.run-stat-neutral { color: var(--color-warning); }
+.run-stat-bad { color: var(--color-danger); }
+
+.result-warning {
+  color: var(--color-danger);
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  padding: 0.5rem 0.75rem;
+  background: color-mix(in srgb, var(--color-danger) 12%, transparent);
+  border-radius: var(--border-radius);
 }
 
 /* Settings Panel */
@@ -1342,7 +1502,11 @@ body {
   }
 
   .ascii-art {
-    font-size: 0.5rem;
+    font-size: clamp(0.55rem, 2.2vw, 0.7rem);
+  }
+
+  .ascii-size-large .ascii-art {
+    font-size: clamp(0.6rem, 2.8vw, 0.8rem);
   }
 
   .scenario-text {

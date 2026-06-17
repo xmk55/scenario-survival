@@ -47,6 +47,7 @@ export const DEFAULT_THEME = {
     danger: '#ff4757',
     warning: '#ffb347',
     ascii: '#7ee8a8',
+    asciiGlow: '#7ee8a833',
     optionBg: '#1a1a28',
     optionBorder: '#3a3a50',
     optionHover: '#252538',
@@ -267,6 +268,7 @@ export const THEME_COLOR_KEYS = [
   { key: 'danger', label: 'Danger' },
   { key: 'warning', label: 'Warning' },
   { key: 'ascii', label: 'ASCII Art' },
+  { key: 'asciiGlow', label: 'ASCII Glow' },
   { key: 'optionBg', label: 'Option Background' },
   { key: 'optionBorder', label: 'Option Border' },
   { key: 'optionHover', label: 'Option Hover' },
@@ -297,7 +299,12 @@ export function themeToCssVars(theme) {
   vars['--glow-intensity'] = normalized.effects.glowIntensity;
   vars['--emoji-opacity'] = normalized.effects.emojiOpacity;
   vars['--emoji-size'] = normalized.effects.emojiSize;
+  vars['--color-asciiGlow'] = normalized.colors.asciiGlow || colorMixAsciiGlow(normalized.colors.ascii);
   return vars;
+}
+
+function colorMixAsciiGlow(asciiColor) {
+  return `${asciiColor}44`;
 }
 
 export function createCustomTheme(name, baseTheme = DEFAULT_THEME) {

@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import AsciiDisplay from './AsciiDisplay';
 import OptionButtons from './OptionButtons';
 import { useSound } from '../context/SoundContext';
+import { buildDeathSummary } from '../data/gameMeta';
 
 const CATEGORY_LABELS = {
   horror: 'Horror',
@@ -48,11 +49,57 @@ function TimerBar({ timeLeft, maxTime }) {
   );
 }
 
+function RunStatsBar({ stats }) {
+  const total = stats.good + stats.neutral + stats.bad;
+  if (total === 0) return null;
+  return (
+    <div className="run-stats-bar">
+      <span className="run-stat run-stat-good">✓ {stats.good}</span>
+      <span className="run-stat run-stat-neutral">~ {stats.neutral}</span>
+      <span className="run-stat run-stat-bad">✗ {stats.bad}</span>
+    </div>
+  );
+}
+
 function ResultBadge({ type, isEveryday }) {
   const labels = isEveryday
     ? { good: 'Nice One', neutral: 'Could Be Worse', bad: 'Rough Call' }
     : { good: 'Smart Move', neutral: 'Close Call', bad: 'Critical' };
   return <span className={`result-badge result-${type}`}>{labels[type] || type}</span>;
+}
+
+function DeathRecap({ deathInfo, runStats }) {
+  const summary = buildDeathSummary(deathInfo);
+  if (!summary) return null;
+
+  return (
+    <div className="death-recap">
+      <h3 className="death-recap-title">Why You Died</h3>
+      <div className="death-cause-badge">{summary.title}</div>
+      <p className="death-cause-explanation">{summary.explanation}</p>
+
+      {summary.asciiKey && (
+        <AsciiDisplay
+          asciiKey={summary.asciiKey}
+          category={summary.category}
+          isCreepy={deathInfo?.tone !== 'everyday'}
+          size="large"
+          showLabel
+        />
+      )}
+
+      {summary.scenarioSetup && (
+        <p className="death-scenario-setup">"{summary.scenarioSetup}"</p>
+      )}
+
+      <div className="death-detail-box">
+        <p><strong>Your choice:</strong> <em>"{summary.choice}"</em></p>
+        <p><strong>What happened:</strong> {summary.outcome}</p>
+      </div>
+
+      <RunStatsBar stats={runStats} />
+    </div>
+  );
 }
 
 export default function GameScreen({
@@ -68,9 +115,12 @@ export default function GameScreen({
   loading,
   error,
   newRecord,
+  deathInfo,
+  runStats,
   onSelectOption,
   onContinue,
   onMenu,
+  onRetry,
 }) {
   const { play } = useSound();
   const prevPhase = useRef(phase);
@@ -130,23 +180,30 @@ export default function GameScreen({
         <pre className="end-ascii">{`
    ╔═══════════════════════════╗
    ║                           ║
-   ║      GAME OVER            ║
+   ║       GAME OVER           ║
    ║                           ║
-   ║         ✝                 ║
+   ║          ✝                ║
    ║                           ║
-   ║   Your story ends here.   ║
    ╚═══════════════════════════╝`}</pre>
-        <h2>{modeConfig.id === 'horror' ? 'The Darkness Claims You' : 'You Didn\'t Make It'}</h2>
+        <h2>{modeConfig.id === 'horror' ? 'The Darkness Claims You' : 'Run Over'}</h2>
         {newRecord && <span className="new-record-badge">🏆 New High Score!</span>}
+
+        <DeathRecap deathInfo={deathInfo} runStats={runStats} />
+
         <p className="end-score">Final Score: <strong>{score.toLocaleString()}</strong></p>
         <p className="end-detail">
           {modeConfig.endless
-            ? `You survived ${round + 1} scenario${round !== 0 ? 's' : ''} in ${modeConfig.name} mode`
-            : `You survived ${round} scenario${round !== 1 ? 's' : ''}`}
-          {modeConfig.id === 'arcade' && combo > 0 && ` · Best combo: x${combo}`}
+            ? `Lasted ${round + 1} round${round !== 0 ? 's' : ''} in ${modeConfig.name}`
+            : `Reached round ${round + 1}`}
+          {modeConfig.id === 'arcade' && combo > 0 && ` · Final combo: x${combo}`}
         </p>
         <div className="end-actions">
-          <button className="btn btn-primary" onClick={() => { play('click'); onMenu(); }}>Try Again</button>
+          <button className="btn btn-primary" onClick={() => { play('start'); onRetry(); }}>
+            Retry {modeConfig.name}
+          </button>
+          <button className="btn btn-secondary" onClick={() => { play('click'); onMenu(); }}>
+            Main Menu
+          </button>
         </div>
       </div>
     );
@@ -158,20 +215,25 @@ export default function GameScreen({
         <pre className="end-ascii">{`
    ╔═══════════════════════════╗
    ║                           ║
-   ║      SURVIVOR             ║
+   ║       SURVIVOR            ║
    ║                           ║
-   ║         ★                 ║
+   ║          ★                ║
    ║                           ║
-   ║   You made it out alive.  ║
    ╚═══════════════════════════╝`}</pre>
-        <h2>{modeConfig.id === 'horror' ? 'You Escaped the Nightmare' : 'You Survived!'}</h2>
+        <h2>{modeConfig.id === 'horror' ? 'You Escaped the Nightmare' : 'You Made It!'}</h2>
         {newRecord && <span className="new-record-badge">🏆 New High Score!</span>}
         <p className="end-score">Final Score: <strong>{score.toLocaleString()}</strong></p>
         <p className="end-detail">
-          All {modeConfig.maxRounds} scenarios conquered with {health}% health remaining
+          All {modeConfig.maxRounds} scenarios with {health}% remaining
         </p>
+        <RunStatsBar stats={runStats} />
         <div className="end-actions">
-          <button className="btn btn-primary" onClick={() => { play('click'); onMenu(); }}>Play Again</button>
+          <button className="btn btn-primary" onClick={() => { play('start'); onRetry(); }}>
+            Play Again
+          </button>
+          <button className="btn btn-secondary" onClick={() => { play('click'); onMenu(); }}>
+            Main Menu
+          </button>
         </div>
       </div>
     );
@@ -198,6 +260,7 @@ export default function GameScreen({
           {scenario?.isAi && <span className="ai-badge">AI</span>}
         </div>
         <div className="game-header-right">
+          <RunStatsBar stats={runStats} />
           {modeConfig.id === 'arcade' && combo > 0 && (
             <span className="combo-display">Combo x{combo}</span>
           )}
@@ -212,7 +275,13 @@ export default function GameScreen({
 
       {error && <div className="error-banner">{error}</div>}
 
-      <AsciiDisplay asciiKey={scenario?.asciiKey} loading={loading && !scenario} />
+      <AsciiDisplay
+        asciiKey={scenario?.asciiKey}
+        loading={loading && !scenario}
+        category={scenario?.category}
+        isCreepy={scenario?.isCreepy}
+        size="normal"
+      />
 
       <main className="game-main">
         {phase === 'result' && lastResult ? (
@@ -223,6 +292,9 @@ export default function GameScreen({
             )}
             <p className="result-choice">You chose: <em>"{lastResult.chosenOption}"</em></p>
             <p className="result-outcome">{lastResult.outcome}</p>
+            {lastResult.resultType === 'bad' && health <= 20 && (
+              <p className="result-warning">⚠️ Your wellbeing is critically low!</p>
+            )}
             <button
               className="btn btn-primary"
               onClick={() => { play('continue'); onContinue(); }}

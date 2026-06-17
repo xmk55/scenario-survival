@@ -24,6 +24,9 @@ export function useGame() {
   const [usedCategories, setUsedCategories] = useState([]);
   const [choiceHistory, setChoiceHistory] = useState([]);
   const [newRecord, setNewRecord] = useState(false);
+  const [deathInfo, setDeathInfo] = useState(null);
+  const [runStats, setRunStats] = useState({ good: 0, neutral: 0, bad: 0 });
+  const [lastScenario, setLastScenario] = useState(null);
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('scenario-survival-api-key') || '');
   const [useAi, setUseAi] = useState(() => localStorage.getItem('scenario-survival-use-ai') === 'true');
   const timerRef = useRef(null);
@@ -99,6 +102,9 @@ export function useGame() {
     setChoiceHistory([]);
     setError(null);
     setNewRecord(false);
+    setDeathInfo(null);
+    setRunStats({ good: 0, neutral: 0, bad: 0 });
+    setLastScenario(null);
     timedOutRef.current = false;
     await loadScenario(0, [], [], mode);
     startRoundTimer();
@@ -110,7 +116,8 @@ export function useGame() {
     setNewRecord(isRecord);
   }, [gameMode, clearTimer]);
 
-  const applyResult = useCallback((result, optionText) => {
+  const applyResult = useCallback((result, optionText, context = {}) => {
+    const { scenario: ctxScenario, forcedTimeout = false } = context;
     const newHealth = Math.max(0, Math.min(100, health + (result.healthDelta || 0)));
     const newScore = score + (result.scoreDelta || 0);
     const newCombo = result.resultType === 'good' ? combo + 1 : 0;
@@ -118,12 +125,32 @@ export function useGame() {
     setHealth(newHealth);
     setScore(newScore);
     setCombo(newCombo);
+    setRunStats((s) => ({
+      ...s,
+      [result.resultType]: (s[result.resultType] || 0) + 1,
+    }));
     setLastResult({ ...result, chosenOption: optionText });
     setChoiceHistory((prev) => [...prev, optionText]);
+    if (ctxScenario) setLastScenario(ctxScenario);
     setPhase('result');
     clearTimer();
 
     if (!result.survived || newHealth <= 0) {
+      const cause = forcedTimeout
+        ? 'timeout'
+        : newHealth <= 0
+          ? 'health_depleted'
+          : 'fatal_choice';
+
+      setDeathInfo({
+        cause,
+        choice: optionText,
+        outcome: result.outcome,
+        scenarioSetup: ctxScenario?.setup,
+        asciiKey: ctxScenario?.asciiKey,
+        category: ctxScenario?.category,
+        tone: ctxScenario?.tone,
+      });
       finishGame(newScore, round, newCombo);
       setTimeout(() => setPhase('gameover'), 0);
       return false;
@@ -176,7 +203,7 @@ export function useGame() {
         );
       }
 
-      applyResult(result, optionText);
+      applyResult(result, optionText, { scenario, forcedTimeout });
     } catch (err) {
       setError(err.message);
       const fallback = resolveChoice(
@@ -188,7 +215,7 @@ export function useGame() {
         gameMode,
         combo
       );
-      applyResult(fallback, optionText);
+      applyResult(fallback, optionText, { scenario, forcedTimeout });
     } finally {
       setLoading(false);
     }
@@ -211,7 +238,12 @@ export function useGame() {
     setError(null);
     setTimeLeft(null);
     setCombo(0);
+    setDeathInfo(null);
   }, [clearTimer]);
+
+  const retryGame = useCallback(() => {
+    startGame(gameMode);
+  }, [startGame, gameMode]);
 
   useEffect(() => {
     if (timeLeft === 0 && phase === 'playing' && !loading && scenario && !timedOutRef.current) {
@@ -236,12 +268,16 @@ export function useGame() {
     loading,
     error,
     newRecord,
+    deathInfo,
+    runStats,
+    lastScenario,
     apiKey,
     useAi,
     startGame,
     selectOption,
     continueGame,
     goToMenu,
+    retryGame,
     saveApiSettings,
   };
 }

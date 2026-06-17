@@ -39,9 +39,12 @@ export default function App() {
           loading={game.loading}
           error={game.error}
           newRecord={game.newRecord}
+          deathInfo={game.deathInfo}
+          runStats={game.runStats}
           onSelectOption={game.selectOption}
           onContinue={game.continueGame}
           onMenu={game.goToMenu}
+          onRetry={game.retryGame}
         />
       )}
 
