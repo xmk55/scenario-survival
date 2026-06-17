@@ -280,7 +280,7 @@ export default function GameScreen({
         loading={loading && !scenario}
         category={scenario?.category}
         isCreepy={scenario?.isCreepy}
-        size="normal"
+        size="hero"
       />
 
       <main className="game-main">

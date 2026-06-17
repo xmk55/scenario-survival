@@ -1,18 +1,63 @@
+import { useRef, useEffect, useCallback } from 'react';
 import { getAsciiArt } from '../data/asciiArt';
 import { getSceneName } from '../data/gameMeta';
+
+const LOADING_ART = `    ╔════════════════════════════════════╗
+    ║                                    ║
+    ║        GENERATING SCENE...         ║
+    ║                                    ║
+    ║           ◐ ◓ ◑ ◒                 ║
+    ║                                    ║
+    ╚════════════════════════════════════╝`;
 
 export default function AsciiDisplay({
   asciiKey,
   loading,
   category,
   isCreepy,
-  size = 'normal',
+  size = 'hero',
   showLabel = true,
 }) {
+  const frameRef = useRef(null);
+  const artRef = useRef(null);
   const art = getAsciiArt(asciiKey);
   const sceneName = getSceneName(asciiKey);
   const catClass = category ? `ascii-cat-${category}` : '';
   const creepyClass = isCreepy ? 'ascii-creepy' : '';
+
+  const fitArt = useCallback(() => {
+    const frame = frameRef.current;
+    const pre = artRef.current;
+    if (!frame || !pre) return;
+
+    pre.style.transform = 'none';
+    pre.style.fontSize = '10px';
+
+    const frameW = frame.clientWidth - 32;
+    const frameH = frame.clientHeight - 32;
+    const artW = pre.scrollWidth;
+    const artH = pre.scrollHeight;
+
+    if (artW === 0 || artH === 0) return;
+
+    const scale = Math.min(frameW / artW, frameH / artH) * 0.96;
+    pre.style.fontSize = '10px';
+    pre.style.transform = `scale(${scale})`;
+  }, []);
+
+  useEffect(() => {
+    fitArt();
+    const frame = frameRef.current;
+    if (!frame) return undefined;
+
+    const observer = new ResizeObserver(fitArt);
+    observer.observe(frame);
+    window.addEventListener('resize', fitArt);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', fitArt);
+    };
+  }, [asciiKey, loading, fitArt]);
 
   return (
     <div className={`ascii-display ascii-size-${size}`}>
@@ -22,20 +67,12 @@ export default function AsciiDisplay({
           {sceneName}
         </div>
       )}
-      <div className={`ascii-frame ${catClass} ${creepyClass}`}>
-        {loading ? (
-          <pre className="ascii-art ascii-loading">
-{`    ╔════════════════════════════════════╗
-    ║                                    ║
-    ║        GENERATING SCENE...         ║
-    ║                                    ║
-    ║           ◐ ◓ ◑ ◒                 ║
-    ║                                    ║
-    ╚════════════════════════════════════╝`}
+      <div ref={frameRef} className={`ascii-frame ${catClass} ${creepyClass}`}>
+        <div className="ascii-art-wrapper">
+          <pre ref={artRef} className={`ascii-art ${loading ? 'ascii-loading' : ''}`}>
+            {loading ? LOADING_ART : art}
           </pre>
-        ) : (
-          <pre className="ascii-art">{art}</pre>
-        )}
+        </div>
       </div>
     </div>
   );
