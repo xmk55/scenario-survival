@@ -610,7 +610,8 @@ export const ASCII_ART = {
 ╚══════════════════════════════════════════════════════════════════╝`,
 };
 
-export function getAsciiArt(key, viewType = 'scene') {
+export function getAsciiArt(key, viewType = 'scene', portraitKey) {
   const sceneArt = ASCII_ART[key] || ASCII_ART.default;
-  return getAsciiView(key, viewType, sceneArt);
+  const viewKey = viewType === 'portrait' ? (portraitKey || key) : key;
+  return getAsciiView(viewKey, viewType, sceneArt, key);
 }

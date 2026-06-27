@@ -10,6 +10,7 @@ import {
   generateModeScenario,
   resolveModeChoice,
   applyLetThemInChoice,
+  getModeScenarioOptions,
 } from '../services/modeScenarios';
 import { GAME_MODES, saveHighScore } from '../data/gameModes';
 
@@ -226,7 +227,7 @@ export function useGame() {
 
     const optionText = forcedTimeout
       ? '[TIME OUT — frozen in fear]'
-      : scenario.options[optionIndex];
+      : (getModeScenarioOptions(scenario) || scenario.options)[optionIndex];
 
     setLoading(true);
     setPhase('resolving');
@@ -247,7 +248,11 @@ export function useGame() {
         };
       } else if (scenario.modeType === 'let_them_in') {
         const action = applyLetThemInChoice(scenario, optionIndex);
-        if (action.kind === 'question' || action.kind === 'verdict_phase') {
+        if (action.kind === 'question') {
+          result = action.result;
+          nextScenario = action.scenario;
+          keepScenario = true;
+        } else if (action.kind === 'verdict_phase') {
           result = action.result;
           nextScenario = action.scenario;
           keepScenario = true;

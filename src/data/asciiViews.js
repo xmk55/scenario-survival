@@ -325,31 +325,66 @@ export function buildViewSequence(modeType, initialView, asciiKey) {
 
 export function getViewAtBeat(sequence, beat) {
   if (!sequence?.length) return 'scene';
-  return sequence[Math.min(beat, sequence.length - 1)] ?? sequence[0];
+  return sequence[beat % sequence.length];
 }
 
-export function getPhaseViewBeat(phase) {
-  if (phase === 'resolving') return 1;
-  if (phase === 'result') return 2;
+export function getPhaseViewBeat() {
   return 0;
 }
 
-export function getAsciiView(key, viewType = 'scene', sceneArt) {
+export function getAsciiView(key, viewType = 'scene', sceneArt, sceneKey) {
+  const povKey = sceneKey || key;
   let raw;
   if (viewType === 'portrait') {
     raw = ASCII_PORTRAITS[key] || ASCII_PORTRAITS.human_normal;
   } else if (viewType === 'pov') {
-    raw = ASCII_POV[key] || ASCII_POV.default;
+    raw = ASCII_POV[povKey] || wrapAsPov(povKey, sceneArt);
   } else if (viewType === 'detail') {
-    raw = ASCII_DETAIL[key] || ASCII_DETAIL.default;
+    raw = ASCII_DETAIL[povKey] || wrapAsDetail(povKey, sceneArt);
   } else if (viewType === 'hands') {
-    raw = ASCII_POV.hands || ASCII_POV[key] || ASCII_POV.default;
+    raw = ASCII_POV.hands;
   } else if (viewType === 'peephole') {
-    raw = ASCII_POV.peephole || ASCII_POV.stranger_knock || ASCII_POV[key] || ASCII_POV.default;
+    raw = ASCII_POV.peephole || ASCII_POV.stranger_knock || ASCII_POV[povKey];
   } else {
     raw = sceneArt;
   }
   return sanitizeAsciiArt(raw);
+}
+
+function wrapAsPov(sceneKey, sceneArt) {
+  if (ASCII_POV[sceneKey]) return ASCII_POV[sceneKey];
+  const title = (sceneKey || 'UNKNOWN').replace(/_/g, ' ').toUpperCase();
+  return `
+╔══════════════════════════════════════════════════════════════════╗
+║  YOUR VIEW — ${title.padEnd(47)}║
+║  (first person — you are inside this moment)                      ║
+╠══════════════════════════════════════════════════════════════════╣
+${clipSceneMiddle(sceneArt, 14)}
+╠══════════════════════════════════════════════════════════════════╣
+║  peripheral vision blurred · breath loud · decision pending       ║
+╚══════════════════════════════════════════════════════════════════╝`;
+}
+
+function wrapAsDetail(sceneKey, sceneArt) {
+  const title = (sceneKey || 'UNKNOWN').replace(/_/g, ' ').toUpperCase();
+  return `
+╔══════════════════════════════════════════════════════════════════╗
+║  CLOSE DETAIL — ${title.slice(0, 44).padEnd(44)}║
+╠══════════════════════════════════════════════════════════════════╣
+${clipSceneMiddle(sceneArt, 10)}
+╠══════════════════════════════════════════════════════════════════╣
+║  >>> one detail your brain latched onto <<<                       ║
+╚══════════════════════════════════════════════════════════════════╝`;
+}
+
+function clipSceneMiddle(sceneArt, lines) {
+  if (!sceneArt) return '║  ( scene loading... )                                           ║';
+  const rows = sceneArt.split('\n').filter((l) => l.trim().length > 4);
+  const start = Math.max(0, Math.floor((rows.length - lines) / 2));
+  return rows.slice(start, start + lines).map((line) => {
+    const trimmed = line.slice(0, 66);
+    return `║${trimmed.padEnd(66)}║`;
+  }).join('\n');
 }
 
 export function getViewLabel(viewType) {

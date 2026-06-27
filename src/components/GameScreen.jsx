@@ -3,7 +3,8 @@ import AsciiDisplay from './AsciiDisplay';
 import OptionButtons from './OptionButtons';
 import { useSound } from '../context/SoundContext';
 import { buildDeathSummary } from '../data/gameMeta';
-import { getViewAtBeat, getPhaseViewBeat } from '../data/asciiViews';
+import { getViewAtBeat } from '../data/asciiViews';
+import { getModeScenarioOptions } from '../services/modeScenarios';
 
 const CATEGORY_LABELS = {
   horror: 'Horror',
@@ -132,6 +133,7 @@ export default function GameScreen({
   newRecord,
   deathInfo,
   runStats,
+  stayOnScenario,
   onSelectOption,
   onContinue,
   onMenu,
@@ -148,13 +150,20 @@ export default function GameScreen({
 
   const activeViewType = useMemo(() => {
     if (!scenario) return 'scene';
-    const phaseBeat = getPhaseViewBeat(phase);
-    const beat = viewBeat + phaseBeat;
+    if (scenario.modeType === 'let_them_in') {
+      if (scenario.interviewPhase === 'verdict') return 'portrait';
+      return getViewAtBeat(scenario.viewSequence || ['portrait', 'peephole'], viewBeat);
+    }
     if (scenario.viewSequence?.length) {
-      return getViewAtBeat(scenario.viewSequence, beat);
+      return getViewAtBeat(scenario.viewSequence, viewBeat);
     }
     return scenario.viewType || 'scene';
-  }, [scenario, viewBeat, phase]);
+  }, [scenario, viewBeat]);
+
+  const displayOptions = useMemo(
+    () => (scenario ? getModeScenarioOptions(scenario) : []),
+    [scenario]
+  );
 
   const isEndless = modeConfig.endless;
   const roundLabel = isEndless
@@ -167,11 +176,13 @@ export default function GameScreen({
 
   useEffect(() => {
     if (phase !== 'playing' || !scenario || loading) return undefined;
+    if (scenario.modeType === 'let_them_in') return undefined;
+    if (!scenario.viewSequence || scenario.viewSequence.length < 2) return undefined;
     const interval = setInterval(() => {
       setViewBeat((b) => b + 1);
-    }, 11000);
+    }, 18000);
     return () => clearInterval(interval);
-  }, [phase, scenario?.id, loading]);
+  }, [phase, scenario?.id, scenario?.modeType, scenario?.viewSequence, loading]);
 
   useEffect(() => {
     if (phase === 'result' && lastResult) {
@@ -257,9 +268,9 @@ export default function GameScreen({
 
   useEffect(() => {
     const handler = (e) => {
-      if (phase === 'playing' && !loading && scenario) {
+      if (phase === 'playing' && !loading && scenario && displayOptions.length) {
         const key = parseInt(e.key, 10);
-        if (key >= 1 && key <= 3) {
+        if (key >= 1 && key <= displayOptions.length) {
           play(isHorrorMode || scenario?.isCreepy ? 'horrorSelectChoice' : 'select');
           onSelectOption(key - 1);
         }
@@ -271,7 +282,7 @@ export default function GameScreen({
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [phase, loading, scenario, onSelectOption, onContinue, play]);
+  }, [phase, loading, scenario, displayOptions, onSelectOption, onContinue, play, isHorrorMode]);
 
   if (phase === 'gameover') {
     return (
@@ -377,9 +388,10 @@ export default function GameScreen({
       )}
 
       <AsciiDisplay
-        asciiKey={scenario?.portraitKey || scenario?.asciiKey}
+        asciiKey={scenario?.asciiKey}
+        portraitKey={scenario?.portraitKey}
         viewType={activeViewType}
-        viewBeat={viewBeat + getPhaseViewBeat(phase)}
+        viewBeat={viewBeat}
         loading={loading && !scenario}
         category={scenario?.category}
         isCreepy={scenario?.isCreepy}
@@ -403,7 +415,13 @@ export default function GameScreen({
               onClick={() => { play('continue'); onContinue(); }}
               disabled={loading}
             >
-              {loading ? 'Loading next scenario...' : 'Continue →'}
+              {loading
+                ? 'Loading...'
+                : stayOnScenario && scenario?.interviewPhase === 'verdict'
+                  ? 'Make your decision →'
+                  : stayOnScenario
+                    ? 'Ask another question →'
+                    : 'Continue →'}
             </button>
           </div>
         ) : (
@@ -416,17 +434,17 @@ export default function GameScreen({
               )}
             </div>
 
-            {scenario?.options && (
+            {displayOptions.length > 0 && (
               <div className="options-section">
                 <h3 className="options-title">
-                  {scenario.modeType === 'let_them_in' && scenario.interviewPhase === 'question'
+                  {scenario.modeType === 'let_them_in' && scenario.interviewPhase !== 'verdict'
                     ? 'Ask a question — or decide now'
                     : scenario.modeType === 'let_them_in'
                       ? 'Let them in?'
                       : 'What do you do?'}
                 </h3>
                 <OptionButtons
-                  options={scenario.options}
+                  options={displayOptions}
                   onSelect={onSelectOption}
                   disabled={loading || phase === 'resolving'}
                   isHorror={isHorrorMode || scenario?.modeType === 'let_them_in'}

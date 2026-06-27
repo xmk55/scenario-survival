@@ -52,6 +52,7 @@ function findOptimalFit(pre, frameW, frameH, dpr) {
 
 export default function AsciiDisplay({
   asciiKey,
+  portraitKey,
   viewType = 'scene',
   viewBeat = 0,
   loading,
@@ -63,7 +64,7 @@ export default function AsciiDisplay({
   const frameRef = useRef(null);
   const artRef = useRef(null);
   const [fadeKey, setFadeKey] = useState(0);
-  const art = getAsciiArt(asciiKey, viewType);
+  const art = getAsciiArt(asciiKey, viewType, portraitKey);
   const sceneName = getSceneName(asciiKey);
   const viewLabel = getViewLabel(viewType);
   const catClass = category ? `ascii-cat-${category}` : '';

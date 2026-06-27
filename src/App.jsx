@@ -42,6 +42,7 @@ export default function App() {
           newRecord={game.newRecord}
           deathInfo={game.deathInfo}
           runStats={game.runStats}
+          stayOnScenario={game.stayOnScenario}
           onSelectOption={game.selectOption}
           onContinue={game.continueGame}
           onMenu={game.goToMenu}

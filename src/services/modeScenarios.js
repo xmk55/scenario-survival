@@ -162,6 +162,7 @@ const WHO_TO_SAVE_POOL = [
 // ─── LET THEM IN (DOPPELGANGER) ─────────────────────────────────────────────
 const LET_THEM_IN_POOL = [
   {
+    id: 'roommate_doppel',
     setup: '2:07 AM. A knock. Through the peephole: your roommate — but they\'re on a trip until Friday.',
     portraitKey: 'human_doppel',
     isDoppelganger: true,
@@ -180,6 +181,7 @@ const LET_THEM_IN_POOL = [
     },
   },
   {
+    id: 'neighbor_martin',
     setup: 'Your neighbor Martin forgot his keys — he says. But Martin left town yesterday. You saw him pack.',
     portraitKey: 'human_doppel',
     isDoppelganger: true,
@@ -198,6 +200,7 @@ const LET_THEM_IN_POOL = [
     },
   },
   {
+    id: 'fake_delivery',
     setup: 'A delivery driver with the right uniform. Normal smile. But the order number is yours — and you didn\'t order anything.',
     portraitKey: 'stranger_wrong',
     isDoppelganger: true,
@@ -216,6 +219,7 @@ const LET_THEM_IN_POOL = [
     },
   },
   {
+    id: 'partner_early',
     setup: 'Your partner is home early. They travel for work — flight lands tomorrow. They look exactly right.',
     portraitKey: 'human_normal',
     isDoppelganger: false,
@@ -495,9 +499,10 @@ function buildLetThemInScenario(template, round) {
     category: 'horror',
     tone: 'intense',
     isCreepy: isDoppel,
-    asciiKey: template.portraitKey,
+    asciiKey: 'stranger_knock',
     portraitKey: template.portraitKey,
     viewType: 'portrait',
+    viewSequence: ['portrait', 'peephole', 'portrait'],
     setup: template.setup,
     visitorName: template.visitorName,
     isDoppelganger: isDoppel,
@@ -507,7 +512,7 @@ function buildLetThemInScenario(template, round) {
     outcomes: template.outcomes,
     interviewPhase: 'question',
     options: template.questions.map((q) => q.text).concat(['Skip questions — decide now']),
-    fingerprint: `let_them_in:${template.setup.slice(0, 50)}:${round}`,
+    fingerprint: `let_them_in:${template.id}`,
   });
 }
 
@@ -529,8 +534,17 @@ function shuffleWithKey(options, keyIndex, keyName) {
   };
 }
 
-function buildFromPool(pool, modeType, round, extra = {}) {
-  const item = pickRandom(pool);
+function buildFromPool(pool, modeType, round, extra = {}, playedFingerprints = [], allowRepeats = false) {
+  let pickPool = pool;
+  if (!allowRepeats && playedFingerprints.length) {
+    const unplayed = pool.filter((item) => {
+      const fp = `${modeType}:${item.id || item.setup.slice(0, 40)}`;
+      return !playedFingerprints.includes(fp);
+    });
+    if (unplayed.length) pickPool = unplayed;
+  }
+
+  const item = pickRandom(pickPool);
   let options = item.options;
   let indices = {};
 
@@ -572,7 +586,7 @@ function buildFromPool(pool, modeType, round, extra = {}) {
     options,
     ...item,
     ...indices,
-    fingerprint: `${modeType}:${item.setup.slice(0, 50)}:${round}`,
+    fingerprint: `${modeType}:${item.id || item.setup.slice(0, 40)}`,
   });
 }
 
@@ -580,33 +594,48 @@ export function generateModeScenario(modeType, round = 0, options = {}) {
   const { playedFingerprints = [], allowRepeats = false } = options;
 
   const builders = {
-    quiz: () => buildFromPool(QUIZ_POOL, 'quiz', round, { category: 'everyday', tone: 'everyday' }),
-    intuition: () => buildFromPool(INTUITION_POOL, 'intuition', round),
-    who_to_save: () => buildFromPool(WHO_TO_SAVE_POOL, 'who_to_save', round, { category: 'survival' }),
-    let_them_in: () => buildLetThemInScenario(pickRandom(LET_THEM_IN_POOL), round),
-    lie_detector: () => buildFromPool(LIE_DETECTOR_POOL, 'lie_detector', round),
-    moral: () => buildFromPool(MORAL_POOL, 'moral', round, { category: 'everyday', tone: 'everyday' }),
-    witness: () => buildFromPool(WITNESS_POOL, 'witness', round),
-    trust: () => buildFromPool(TRUST_POOL, 'trust', round, { category: 'social', tone: 'everyday' }),
+    quiz: () => buildFromPool(QUIZ_POOL, 'quiz', round, { category: 'everyday', tone: 'everyday' }, playedFingerprints, allowRepeats),
+    intuition: () => buildFromPool(INTUITION_POOL, 'intuition', round, {}, playedFingerprints, allowRepeats),
+    who_to_save: () => buildFromPool(WHO_TO_SAVE_POOL, 'who_to_save', round, { category: 'survival' }, playedFingerprints, allowRepeats),
+    let_them_in: () => buildLetThemInFromPool(round, playedFingerprints, allowRepeats),
+    lie_detector: () => buildFromPool(LIE_DETECTOR_POOL, 'lie_detector', round, {}, playedFingerprints, allowRepeats),
+    moral: () => buildFromPool(MORAL_POOL, 'moral', round, { category: 'everyday', tone: 'everyday' }, playedFingerprints, allowRepeats),
+    witness: () => buildFromPool(WITNESS_POOL, 'witness', round, {}, playedFingerprints, allowRepeats),
+    trust: () => buildFromPool(TRUST_POOL, 'trust', round, { category: 'social', tone: 'everyday' }, playedFingerprints, allowRepeats),
   };
 
   const build = builders[modeType];
   if (!build) return null;
-
-  if (!allowRepeats && playedFingerprints.length) {
-    for (let attempt = 0; attempt < 12; attempt++) {
-      const candidate = build();
-      if (!playedFingerprints.includes(candidate.fingerprint)) return candidate;
-    }
-  }
-
   return build();
+}
+
+function buildLetThemInFromPool(round, playedFingerprints, allowRepeats) {
+  const pool = LET_THEM_IN_POOL;
+  if (!allowRepeats && playedFingerprints.length) {
+    const unplayed = pool.filter(
+      (t) => !playedFingerprints.includes(`let_them_in:${t.id}`)
+    );
+    if (unplayed.length) return buildLetThemInScenario(pickRandom(unplayed), round);
+    const scenario = buildLetThemInScenario(pickRandom(pool), round);
+    scenario.poolRefreshed = true;
+    return scenario;
+  }
+  return buildLetThemInScenario(pickRandom(pool), round);
 }
 
 export function getModeScenarioOptions(scenario) {
   if (scenario.modeType !== 'let_them_in') return scenario.options;
   if (scenario.interviewPhase === 'verdict') return scenario.verdictOptions;
-  return scenario.questions.map((q) => q.text).concat(['Skip questions — decide now']);
+  const asked = scenario.askedQuestions || [];
+  const remaining = scenario.questions.filter((_, i) => !asked.includes(i));
+  return [...remaining.map((q) => q.text), 'Skip questions — decide now'];
+}
+
+function getRemainingQuestions(scenario) {
+  const asked = scenario.askedQuestions || [];
+  return scenario.questions
+    .map((q, i) => ({ ...q, index: i }))
+    .filter((q) => !asked.includes(q.index));
 }
 
 export function applyLetThemInChoice(scenario, optionIndex) {
@@ -617,7 +646,9 @@ export function applyLetThemInChoice(scenario, optionIndex) {
     };
   }
 
-  if (optionIndex >= scenario.questions.length) {
+  const remaining = getRemainingQuestions(scenario);
+
+  if (optionIndex >= remaining.length) {
     return {
       kind: 'verdict_phase',
       result: {
@@ -636,15 +667,14 @@ export function applyLetThemInChoice(scenario, optionIndex) {
     };
   }
 
-  const q = scenario.questions[optionIndex];
-  const asked = [...(scenario.askedQuestions || []), optionIndex];
-  const remaining = scenario.questions
-    .map((question, i) => ({ ...question, index: i }))
-    .filter((question) => !asked.includes(question.index));
-  const nextOptions = remaining.map((question) => question.text).concat(['Skip questions — decide now']);
+  const q = remaining[optionIndex];
+  const asked = [...(scenario.askedQuestions || []), q.index];
+  const stillRemaining = getRemainingQuestions({ ...scenario, askedQuestions: asked });
+  const toVerdict = stillRemaining.length === 0;
+  const nextOptions = [...stillRemaining.map((item) => item.text), 'Skip questions — decide now'];
 
   return {
-    kind: 'question',
+    kind: toVerdict ? 'verdict_phase' : 'question',
     result: {
       resultType: 'neutral',
       outcome: q.reveal,
@@ -656,10 +686,10 @@ export function applyLetThemInChoice(scenario, optionIndex) {
       ...scenario,
       askedQuestions: asked,
       suspicion: (scenario.suspicion || 0) + (q.suspicion || 1),
-      interviewPhase: remaining.length === 0 ? 'verdict' : 'question',
-      options: remaining.length === 0 ? scenario.verdictOptions : nextOptions,
-      setup: remaining.length === 0
-        ? `${scenario.setup}\n\n[Final clue: ${q.reveal}]`
+      interviewPhase: toVerdict ? 'verdict' : 'question',
+      options: toVerdict ? scenario.verdictOptions : nextOptions,
+      setup: toVerdict
+        ? `${scenario.setup}\n\n[Final clue: ${q.reveal}]\n\n[Decide now.]`
         : `${scenario.setup}\n\n[Clue: ${q.reveal}]`,
     },
   };
