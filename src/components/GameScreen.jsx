@@ -149,7 +149,7 @@ export default function GameScreen({
   const isEveryday = scenario?.tone === 'everyday';
 
   const activeViewType = useMemo(() => {
-    if (!scenario) return 'scene';
+    if (!scenario) return 'pov';
     if (scenario.modeType === 'let_them_in') {
       if (scenario.interviewPhase === 'verdict') return 'portrait';
       return getViewAtBeat(scenario.viewSequence || ['portrait', 'peephole'], viewBeat);
@@ -157,7 +157,7 @@ export default function GameScreen({
     if (scenario.viewSequence?.length) {
       return getViewAtBeat(scenario.viewSequence, viewBeat);
     }
-    return scenario.viewType || 'scene';
+    return scenario.viewType || 'pov';
   }, [scenario, viewBeat]);
 
   const displayOptions = useMemo(

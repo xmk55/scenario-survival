@@ -1,3 +1,5 @@
+import { ASCII_POV, ASCII_DETAIL, ASCII_OVER_SHOULDER } from './asciiPovArt';
+
 const EMOJI_TO_TEXT = {
   '🌙': '[MOON]',
   '🌧': '[RAIN]',
@@ -24,69 +26,59 @@ const EMOJI_TO_TEXT = {
   '∞': 'oo',
 };
 
+export { ASCII_POV, ASCII_DETAIL };
+
 export const VIEW_LABELS = {
-  scene: 'Scene View',
-  pov: 'Your View',
-  detail: 'Close Detail',
+  pov: 'First Person',
+  scene: 'Wide Shot',
+  detail: 'Close-Up',
   portrait: 'Face to Face',
   hands: 'Your Hands',
-  peephole: 'Through Peephole',
+  peephole: 'Peephole',
+  over_shoulder: 'Over Shoulder',
 };
 
 export const ASCII_PORTRAITS = {
   human_normal: `
 ╔══════════════════════════════════════════════════════════════════╗
 ║  AT THE DOOR — CHAIN STILL ON                    [RAIN] [RAIN]   ║
-║                                                                  ║
-║   DOOR FRAME          PEEPHOLE VIEW           HALL LIGHT FLICKER ║
 ║   ┌────────────────────────────────────────────────────────┐    ║
-║   │  ┌──────────────────────────────────────────────────┐  │    ║
-║   │  │                    .-------.                     │  │    ║
-║   │  │                   /  o   o  \\                    │  │    ║
-║   │  │                  |    \\_/    |    YOUR ROOMMATE?   │  │    ║
-║   │  │                  |  \\___/  |    looks tired      │  │    ║
-║   │  │                   \\  ___  /     wet coat           │  │    ║
-║   │  │                    '-----'     familiar smile     │  │    ║
-║   │  │         /|\\                     hands visible     │  │    ║
-║   │  │          |                      no visible teeth  │  │    ║
-║   │  └──────────────────────────────────────────────────┘  │    ║
-║   │  VOICE: "Hey... forgot my keys. Can I come in?"          │    ║
+║   │                    .-------.                             │    ║
+║   │                   /  o   o  \\    familiar face           │    ║
+║   │                  |    \\_/    |    tired smile            │    ║
+║   │                  |  \\___/  |    wet coat                │    ║
+║   │                   \\  ___  /                             │    ║
+║   │                    '-----'                             │    ║
+║   │         /|\\          "Forgot my keys..."                │    ║
 ║   └────────────────────────────────────────────────────────┘    ║
-║   CHAIN: ON    DEADBOLT: LOCKED    YOU: HOLDING DOOR SHUT        ║
+║   CHAIN: ON    YOU: eye to peephole    HAND: deadbolt            ║
 ╚══════════════════════════════════════════════════════════════════╝`,
 
   human_doppel: `
 ╔══════════════════════════════════════════════════════════════════╗
 ║  AT THE DOOR — CHAIN STILL ON                    [RAIN] [RAIN]   ║
-║                                                                  ║
-║   DOOR FRAME          PEEPHOLE VIEW           HALL LIGHT FLICKER ║
 ║   ┌────────────────────────────────────────────────────────┐    ║
-║   │  ┌──────────────────────────────────────────────────┐  │    ║
-║   │  │                    .-------.                     │  │    ║
-║   │  │                   /  O   o  \\    SLIGHTLY OFF   │  │    ║
-║   │  │                  |    \\_/    |    smile too wide  │  │    ║
-║   │  │                  |  \\___/  |    eyes don't blink │  │    ║
-║   │  │                   \\  ___  /     WRONG SHOES       │  │    ║
-║   │  │                    '-----'     voice flat          │  │    ║
-║   │  │         /|\\                     fingers too long  │  │    ║
-║   │  │          |                      shadow wrong       │  │    ║
-║   │  └──────────────────────────────────────────────────┘  │    ║
-║   │  VOICE: "Hey... forgot my keys. Can I come in?"          │    ║
+║   │                    .-------.                             │    ║
+║   │                   /  O   o  \\    eyes uneven             │    ║
+║   │                  |    \\_/    |    smile TOO wide         │    ║
+║   │                  |  \\___/  |    wrong shoes             │    ║
+║   │                   \\  ___  /     voice flat               │    ║
+║   │                    '-----'     fingers too long          │    ║
+║   │         /|\\          "Forgot my keys..."                │    ║
 ║   └────────────────────────────────────────────────────────┘    ║
-║   CHAIN: ON    DEADBOLT: LOCKED    YOU: SOMETHING FEELS WRONG    ║
+║   CHAIN: ON    YOU: something is WRONG                          ║
 ╚══════════════════════════════════════════════════════════════════╝`,
 
   stranger_friendly: `
 ╔══════════════════════════════════════════════════════════════════╗
 ║  FRONT DOOR — 2:14 AM                                            ║
 ║   ┌────────────────────────────────────────────────────────┐    ║
-║   │       .-------.          NEIGHBOR? DELIVERY? LOST?       │    ║
-║   │      /  ^   ^  \\                                         │    ║
-║   │     |    \\_/    |        holding grocery bag             │    ║
-║   │     |  \\___/  |         name tag: "MARTIN"               │    ║
-║   │      \\  ___  /          breath visible in cold air       │    ║
-║   │       '-----'            seems nervous but normal         │    ║
-║   │        /|\\                                               │    ║
+║   │       .-------.     grocery bag · name tag "MARTIN"      │    ║
+║   │      /  ^   ^  \\    nervous but seems normal             │    ║
+║   │     |    \\_/    |                                       │    ║
+║   │     |  \\___/  |                                         │    ║
+║   │      \\  ___  /                                          │    ║
+║   │       '-----'                                           │    ║
 ║   └────────────────────────────────────────────────────────┘    ║
 ╚══════════════════════════════════════════════════════════════════╝`,
 
@@ -94,183 +86,12 @@ export const ASCII_PORTRAITS = {
 ╔══════════════════════════════════════════════════════════════════╗
 ║  FRONT DOOR — 2:14 AM                                            ║
 ║   ┌────────────────────────────────────────────────────────┐    ║
-║   │       .-------.          TOO STILL. TOO TALL.            │    ║
-║   │      /  -   -  \\         eyes reflect light wrong       │    ║
-║   │     |    \\_/    |        smile frozen mid-grin           │    ║
-║   │     |  \\___/  |         skin grey under porch lamp       │    ║
-║   │      \\  ___  /          repeats same phrase...          │    ║
-║   │       '-----'            "Let me in. Let me in."         │    ║
-║   │        /|\\               joints bend backward?          │    ║
-║   └────────────────────────────────────────────────────────┘    ║
-╚══════════════════════════════════════════════════════════════════╝`,
-};
-
-export const ASCII_POV = {
-  default: `
-╔══════════════════════════════════════════════════════════════════╗
-║  YOUR EYES — FIRST PERSON                                          ║
-║                                                                  ║
-║              . . . . . . . . . . . . . . . . .                   ║
-║           . '   EDGE OF VISION — BLURRED PERIPHERY   ' .         ║
-║        . '                                               ' .      ║
-║      . '     YOU ARE HERE. SOMETHING IS IN FRONT OF YOU.    ' .   ║
-║     '                                                         '  ║
-║    '    ┌─────────────────────────────────────────────┐        ' ║
-║   '     │  >>>>>>>>>>  FOCUS  <<<<<<<<<<              │         '║
-║   '     │         (direct line of sight)              │         '║
-║   '     │    hands gripping edge of something...      │         '║
-║   '     └─────────────────────────────────────────────┘         ' ║
-║    '    heartbeat loud in ears... breath shallow...           '  ║
-║     '                                                         '  ║
-║      ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' '   ║
-║                                                                  ║
-║   [ blink ]   [ step back ]   [ lean closer ]                    ║
-╚══════════════════════════════════════════════════════════════════╝`,
-
-  bedroom_killer: `
-╔══════════════════════════════════════════════════════════════════╗
-║  YOUR VIEW — LYING IN BED, EYES SLIGHTLY OPEN                      ║
-║                                                                  ║
-║   CEILING CRACKS         GLOW OF PHONE: 3:17 AM                   ║
-║   ─────────────────────────────────────────────────────────────  ║
-║   edge of blanket ════════════════════════ edge of mattress      ║
-║                                                                  ║
-║        you can see without moving your head:                     ║
-║        closet door...   ajar.   darker than it should be.        ║
-║                                                                  ║
-║   ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ ║
-║   ▓  UNDER BED — from your angle you see FINGERS on floor    ▓  ║
-║   ▓  not yours.   too many joints.   not moving. yet.        ▓  ║
-║   ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ ║
-║   VOICE (under bed): "Are you asleep?"                           ║
-╚══════════════════════════════════════════════════════════════════╝`,
-
-  dark_alley: `
-╔══════════════════════════════════════════════════════════════════╗
-║  YOUR VIEW — LOOKING DOWN THE ALLEY                                 ║
-║                                                                  ║
-║   YOUR HANDS: keys between fingers, knuckles white               ║
-║        |\\___/|                                                   ║
-║        |     |     puddle reflects streetlamp *                   ║
-║   ─────┴─────┴───────────────────────────────────────────────   ║
-║   alley stretches ahead — brick walls closing in                 ║
-║   SHADOW on left wall... longer than yours... moving?            ║
-║   FOOTSTEPS behind:  step... step... step...                     ║
-║   dead end ahead.   fire escape to the right.   run or hide?     ║
-╚══════════════════════════════════════════════════════════════════╝`,
-
-  stranger_knock: `
-╔══════════════════════════════════════════════════════════════════╗
-║  YOUR VIEW — THROUGH THE PEEPHOLE                                 ║
-║                                                                  ║
-║   ┌─────────────────────────────────────────┐                   ║
-║   │  ( circular fisheye distortion )         │                   ║
-║   │         figure on porch                    │                   ║
-║   │           .-----.                          │                   ║
-║   │          /  o o  \\   face too close to door  │                   ║
-║   │         |   \\_/   |  knocking again         │                   ║
-║   │          \\  ---  /   three slow knocks      │                   ║
-║   │           '-----'                           │                   ║
-║   │  porch light buzzes — shadow jumps          │                   ║
-║   └─────────────────────────────────────────┘                   ║
-║   YOUR EYE at peephole    CHAIN: latched    HAND on deadbolt     ║
-╚══════════════════════════════════════════════════════════════════╝`,
-
-  elevator: `
-╔══════════════════════════════════════════════════════════════════╗
-║  YOUR VIEW — STUCK ELEVATOR, LOOKING AT REFLECTION                 ║
-║                                                                  ║
-║   mirror wall shows YOU and the doors behind you                 ║
-║   ┌──────────────────────────────────────────────┐              ║
-║   │  YOU          REFLECTION          DOORS       │              ║
-║   │  (o_o)        (o_o)  ...wait     [||] [||]   │              ║
-║   │  /|\\          /|\\   reflection  seams gap   │              ║
-║   │   |            |    delayed?     scrape ^   │              ║
-║   └──────────────────────────────────────────────┘              ║
-║   ceiling panel: something shifts above you                      ║
-╚══════════════════════════════════════════════════════════════════╝`,
-
-  haunted_house: `
-╔══════════════════════════════════════════════════════════════════╗
-║  YOUR VIEW — FLASHLIGHT BEAM IN DARK HALL                          ║
-║                                                                  ║
-║   >>>>>>>>>>>>>>>>>>>> BEAM >>>>>>>>>>>>>>>>>>>>>>>>             ║
-║   dust particles swirl in the cone of light                      ║
-║   wallpaper peeling    portrait eyes seem to track you           ║
-║   floorboard ahead: one board raised — something underneath?     ║
-║   YOUR BREATH visible in cold air                                ║
-╚══════════════════════════════════════════════════════════════════╝`,
-
-  mirror_horror: `
-╔══════════════════════════════════════════════════════════════════╗
-║  YOUR VIEW — BATHROOM MIRROR, 3 AM                                 ║
-║                                                                  ║
-║   you stare at your reflection                                     ║
-║   ┌──────────────────────────────────────────────┐              ║
-║   │  REAL YOU          MIRROR                       │              ║
-║   │  hand raised         hand raised...             │              ║
-║   │  blink                 ...hasn't blinked yet    │              ║
-║   │  scared                smiling?                 │              ║
-║   └──────────────────────────────────────────────┘              ║
-║   fog on glass clears from YOUR breath only on one side           ║
-╚══════════════════════════════════════════════════════════════════╝`,
-
-  who_to_save: `
-╔══════════════════════════════════════════════════════════════════╗
-║  YOUR VIEW — TWO PEOPLE, ONE ROPE, TEN SECONDS                     ║
-║                                                                  ║
-║   LEFT PLATFORM          YOU (center)         RIGHT PLATFORM     ║
-║   ┌─────────────┐         /|\\               ┌─────────────┐    ║
-║   │  PERSON A   │          |                 │  PERSON B   │    ║
-║   │  holding    │    knife at YOUR throat     │  holding    │    ║
-║   │  rope end   │                          │  rope end   │    ║
-║   └─────────────┘                          └─────────────┘    ║
-║   "SAVE THEM!"                              "SAVE ME!"           ║
-║   YOU CAN ONLY CUT ONE ROPE                                        ║
-╚══════════════════════════════════════════════════════════════════╝`,
-
-  hands: `
-╔══════════════════════════════════════════════════════════════════╗
-║  YOUR HANDS — FIRST PERSON                                           ║
-║                                                                  ║
-║                    .---.     .---.                               ║
-║                   /     \\   /     \\                              ║
-║                  |  YOU  | |  YOU  |                             ║
-║                   \\     /   \\     /                              ║
-║                    '--+-----+--'                                 ║
-║                       |     |                                    ║
-║              trembling /     \\ gripping                         ║
-║                       |     |                                    ║
-║   sweat on palms · white knuckles · something wet on fingers     ║
-║   breath fogging the edge of your vision                         ║
-╚══════════════════════════════════════════════════════════════════╝`,
-
-  peephole: `
-╔══════════════════════════════════════════════════════════════════╗
-║  YOUR VIEW — THROUGH THE PEEPHOLE (FISHEYE)                          ║
-║                                                                  ║
-║              . . . . . . . . . . . . . . .                         ║
-║          . '   circular distortion ring   ' .                    ║
-║        . '    ┌─────────────────────┐    ' .                     ║
-║       '      │   FIGURE AT DOOR    │      '                      ║
-║      '       │      .-----.        │       '                     ║
-║     '        │     /  o o  \\       │        '                    ║
-║    '         │    |   \\_/   |      │         '                   ║
-║   '          │     \\  ---  /       │          '                  ║
-║    '         └─────────────────────┘         '                   ║
-║     '   porch light · long shadow · too still  '                 ║
-║      ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' '                  ║
-╚══════════════════════════════════════════════════════════════════╝`,
-};
-
-export const ASCII_DETAIL = {
-  default: `
-╔══════════════════════════════════════════════════════════════════╗
-║  CLOSE DETAIL — SOMETHING SPECIFIC                                 ║
-║   ┌────────────────────────────────────────────────────────┐    ║
-║   │  >>> zoomed in <<<                                      │    ║
-║   │  a scratch. a note. a stain. a key detail.              │    ║
-║   │  the thing you'd miss if you looked at the whole room.  │    ║
+║   │       .-------.     TOO STILL · TOO TALL                  │    ║
+║   │      /  -   -  \\    smile frozen · eyes wrong           │    ║
+║   │     |    \\_/    |    "Let me in. Let me in."            │    ║
+║   │     |  \\___/  |     joints bend backward?               │    ║
+║   │      \\  ___  /                                          │    ║
+║   │       '-----'                                           │    ║
 ║   └────────────────────────────────────────────────────────┘    ║
 ╚══════════════════════════════════════════════════════════════════╝`,
 };
@@ -286,45 +107,48 @@ export function sanitizeAsciiArt(art) {
   return result;
 }
 
+/** Default to first-person POV — scene/wide shots are rare */
 export function pickViewType(modeType) {
   if (modeType === 'let_them_in') return 'portrait';
-  if (modeType === 'who_to_save') return Math.random() < 0.55 ? 'pov' : 'scene';
-  if (modeType === 'witness') return Math.random() < 0.45 ? 'detail' : 'pov';
+  if (modeType === 'who_to_save') return 'pov';
+  if (modeType === 'witness') return Math.random() < 0.6 ? 'detail' : 'pov';
   const roll = Math.random();
-  if (roll < 0.32) return 'scene';
-  if (roll < 0.52) return 'pov';
-  if (roll < 0.72) return 'detail';
-  if (roll < 0.86) return 'hands';
-  return 'peephole';
+  if (roll < 0.62) return 'pov';
+  if (roll < 0.78) return 'detail';
+  if (roll < 0.88) return 'hands';
+  if (roll < 0.94) return 'over_shoulder';
+  if (roll < 0.97) return 'peephole';
+  return 'scene';
 }
 
-/** Ordered camera cuts for one scenario — cycles for a cinematic feel */
 export function buildViewSequence(modeType, initialView, asciiKey) {
   if (modeType === 'let_them_in') {
-    return ['portrait', 'peephole', 'detail', 'portrait', 'pov'];
+    return ['portrait', 'peephole', 'pov', 'detail'];
   }
 
-  const hasPov = ASCII_POV[asciiKey] || asciiKey === 'stranger_knock';
-  const cuts = [initialView];
-
+  const sequence = [];
   const add = (view) => {
-    if (cuts[cuts.length - 1] !== view) cuts.push(view);
+    if (sequence.length === 0 || sequence[sequence.length - 1] !== view) {
+      sequence.push(view);
+    }
   };
 
-  if (initialView !== 'pov' && (hasPov || true)) add('pov');
-  if (initialView !== 'detail') add('detail');
-  if (initialView !== 'scene') add('scene');
-  add('hands');
-  if (asciiKey === 'stranger_knock') add('peephole');
-  else if (Math.random() < 0.35) add('peephole');
+  add(initialView === 'scene' ? 'pov' : initialView);
   add('pov');
   add('detail');
+  add('hands');
+  add('over_shoulder');
+  add('pov');
 
-  return cuts.slice(0, 6);
+  if (asciiKey === 'stranger_knock') {
+    add('peephole');
+  }
+
+  return sequence.slice(0, 5);
 }
 
 export function getViewAtBeat(sequence, beat) {
-  if (!sequence?.length) return 'scene';
+  if (!sequence?.length) return 'pov';
   return sequence[beat % sequence.length];
 }
 
@@ -332,61 +156,90 @@ export function getPhaseViewBeat() {
   return 0;
 }
 
-export function getAsciiView(key, viewType = 'scene', sceneArt, sceneKey) {
-  const povKey = sceneKey || key;
+export function getAsciiView(key, viewType = 'pov', sceneArt, sceneKey) {
+  const sk = sceneKey || key;
   let raw;
-  if (viewType === 'portrait') {
-    raw = ASCII_PORTRAITS[key] || ASCII_PORTRAITS.human_normal;
-  } else if (viewType === 'pov') {
-    raw = ASCII_POV[povKey] || wrapAsPov(povKey, sceneArt);
-  } else if (viewType === 'detail') {
-    raw = ASCII_DETAIL[povKey] || wrapAsDetail(povKey, sceneArt);
-  } else if (viewType === 'hands') {
-    raw = ASCII_POV.hands;
-  } else if (viewType === 'peephole') {
-    raw = ASCII_POV.peephole || ASCII_POV.stranger_knock || ASCII_POV[povKey];
-  } else {
-    raw = sceneArt;
+
+  switch (viewType) {
+    case 'portrait':
+      raw = ASCII_PORTRAITS[key] || ASCII_PORTRAITS.human_normal;
+      break;
+    case 'pov':
+      raw = ASCII_POV[sk] || buildCategoryPov(sk, sceneArt);
+      break;
+    case 'detail':
+      raw = ASCII_DETAIL[sk] || ASCII_DETAIL.default;
+      break;
+    case 'hands':
+      raw = ASCII_POV.hands;
+      break;
+    case 'peephole':
+      raw = ASCII_POV.peephole || ASCII_POV.stranger_knock;
+      break;
+    case 'over_shoulder':
+      raw = ASCII_OVER_SHOULDER[sk] || buildOverShoulder(sk);
+      break;
+    case 'scene':
+    default:
+      raw = sceneArt;
+      break;
   }
+
   return sanitizeAsciiArt(raw);
 }
 
-function wrapAsPov(sceneKey, sceneArt) {
+function buildCategoryPov(sceneKey, sceneArt) {
   if (ASCII_POV[sceneKey]) return ASCII_POV[sceneKey];
-  const title = (sceneKey || 'UNKNOWN').replace(/_/g, ' ').toUpperCase();
+
+  const everyday = ['party_invite', 'car_repair', 'job_interview', 'awkward_moment',
+    'morning_rush', 'text_message', 'grocery_store', 'roommate_issue', 'work_deadline'];
+  const isEveryday = everyday.includes(sceneKey);
+
+  const title = sceneKey.replace(/_/g, ' ').toUpperCase();
+
+  if (isEveryday) {
+    return `
+╔══════════════════════════════════════════════════════════════════╗
+║  POV — ${title.slice(0, 52).padEnd(52)}║
+║ .::''::..::''::..::''::..::''::..::''::..::''::..::''::..::''::. ║
+║ '   normal room · daylight · real life pressure               ' ║
+║ .  ════════════════════ your view ahead ═══════════════════════  . ║
+║ '   the situation fills your vision · no one else can decide  ' ║
+║ .  YOUR HANDS visible at bottom of frame · hesitating          . ║
+║ ' :'':.:'':.:'':.:'':.:'':.:'':.:'':.:'':.:'':.:'':.:'':.:'': ' ║
+╚══════════════════════════════════════════════════════════════════╝`;
+  }
+
   return `
 ╔══════════════════════════════════════════════════════════════════╗
-║  YOUR VIEW — ${title.padEnd(47)}║
-║  (first person — you are inside this moment)                      ║
-╠══════════════════════════════════════════════════════════════════╣
-${clipSceneMiddle(sceneArt, 14)}
-╠══════════════════════════════════════════════════════════════════╣
-║  peripheral vision blurred · breath loud · decision pending       ║
+║  POV — ${title.slice(0, 52).padEnd(52)}║
+║ .::''::..::''::..::''::..::''::..::''::..::''::..::''::..::''::. ║
+║ '   darkness at edges · heart loud · eyes locked forward        ' ║
+║ .  ═══════════════════ HORIZON ═══════════════════════════════  . ║
+║ '              danger · choice · no time                        ' ║
+║ .  YOUR HANDS (foreground) · trembling · decide NOW            . ║
+║ ' :'':.:'':.:'':.:'':.:'':.:'':.:'':.:'':.:'':.:'':.:'':.:'': ' ║
 ╚══════════════════════════════════════════════════════════════════╝`;
 }
 
-function wrapAsDetail(sceneKey, sceneArt) {
-  const title = (sceneKey || 'UNKNOWN').replace(/_/g, ' ').toUpperCase();
+function buildOverShoulder(sceneKey) {
+  const title = sceneKey.replace(/_/g, ' ').toUpperCase();
   return `
 ╔══════════════════════════════════════════════════════════════════╗
-║  CLOSE DETAIL — ${title.slice(0, 44).padEnd(44)}║
-╠══════════════════════════════════════════════════════════════════╣
-${clipSceneMiddle(sceneArt, 10)}
-╠══════════════════════════════════════════════════════════════════╣
-║  >>> one detail your brain latched onto <<<                       ║
+║  OVER SHOULDER — ${title.slice(0, 45).padEnd(45)}║
+║ .::''::..::''::..::''::..::''::..::''::..::''::..::''::..::''::. ║
+║ '                    scene ahead of you                       ' ║
+║ .     \\___                                                      . ║
+║ '      \\__  YOU (from behind) · watching · deciding            ' ║
+║ .       \\___ shoulder in frame · moment frozen               . ║
+║ ' :'':.:'':.:'':.:'':.:'':.:'':.:'':.:'':.:'':.:'':.:'':.:'': ' ║
 ╚══════════════════════════════════════════════════════════════════╝`;
-}
-
-function clipSceneMiddle(sceneArt, lines) {
-  if (!sceneArt) return '║  ( scene loading... )                                           ║';
-  const rows = sceneArt.split('\n').filter((l) => l.trim().length > 4);
-  const start = Math.max(0, Math.floor((rows.length - lines) / 2));
-  return rows.slice(start, start + lines).map((line) => {
-    const trimmed = line.slice(0, 66);
-    return `║${trimmed.padEnd(66)}║`;
-  }).join('\n');
 }
 
 export function getViewLabel(viewType) {
-  return VIEW_LABELS[viewType] || VIEW_LABELS.scene;
+  return VIEW_LABELS[viewType] || VIEW_LABELS.pov;
+}
+
+export function isImmersiveView(viewType) {
+  return viewType !== 'scene';
 }

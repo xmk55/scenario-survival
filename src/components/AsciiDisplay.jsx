@@ -1,16 +1,12 @@
 import { useRef, useEffect, useCallback, useState } from 'react';
 import { getAsciiArt } from '../data/asciiArt';
 import { getSceneName } from '../data/gameMeta';
-import { getViewLabel } from '../data/asciiViews';
+import { getViewLabel, isImmersiveView } from '../data/asciiViews';
 
 const LOADING_ART = `╔══════════════════════════════════════════════════════════════════╗
 ║  GENERATING SCENE...                         [~] loading          ║
-║                                                                  ║
 ║   ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  ║
-║   ░░  ┌────┐  ┌────┐  ┌────┐  ┌────┐  ┌────┐  ┌────┐  ┌────┐ ░░  ║
-║   ░░  │ ?? │  │ ?? │  │ ?? │  │ ?? │  │ ?? │  │ ?? │  │ ?? │ ░░  ║
-║   ░░  └────┘  └────┘  └────┘  └────┘  └────┘  └────┘  └────┘ ░░  ║
-║   ░░        BUILDING YOUR NEXT SCENARIO . . .                 ░░  ║
+║   ░░        BUILDING YOUR NEXT MOMENT . . .                   ░░  ║
 ║   ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  ║
 ╚══════════════════════════════════════════════════════════════════╝`;
 
@@ -47,13 +43,13 @@ function findOptimalFit(pre, frameW, frameH, dpr) {
   const artH = pre.scrollHeight;
   const scale = Math.min(frameW / artW, frameH / artH) * 0.97;
 
-  return { renderSize, scale, dpr };
+  return { renderSize, scale };
 }
 
 export default function AsciiDisplay({
   asciiKey,
   portraitKey,
-  viewType = 'scene',
+  viewType = 'pov',
   viewBeat = 0,
   loading,
   category,
@@ -69,6 +65,8 @@ export default function AsciiDisplay({
   const viewLabel = getViewLabel(viewType);
   const catClass = category ? `ascii-cat-${category}` : '';
   const creepyClass = isCreepy ? 'ascii-creepy' : '';
+  const viewClass = `ascii-view-${viewType}`;
+  const immersiveClass = isImmersiveView(viewType) ? 'ascii-immersive' : '';
   const showCut = viewBeat > 0;
 
   const fitArt = useCallback(() => {
@@ -84,7 +82,6 @@ export default function AsciiDisplay({
 
     pre.style.fontSize = `${renderSize}px`;
     pre.style.transform = `scale(${scale}) translateZ(0)`;
-    pre.style.willChange = 'transform';
   }, []);
 
   useEffect(() => {
@@ -109,19 +106,24 @@ export default function AsciiDisplay({
     <div className={`ascii-display ascii-size-${size}`}>
       {showLabel && !loading && asciiKey && (
         <div className="ascii-scene-label">
-          <span className="ascii-scene-dot" />
-          <span className="ascii-view-tag">{viewLabel}</span>
-          {showCut && <span className="ascii-cut-tag">cut {viewBeat + 1}</span>}
+          <span className={`ascii-scene-dot ${viewClass}`} />
+          <span className={`ascii-view-tag ${viewClass}`}>{viewLabel}</span>
+          {showCut && <span className="ascii-cut-tag">angle {viewBeat + 1}</span>}
           <span className="ascii-scene-sep">/</span>
-          {sceneName}
+          <span className="ascii-scene-name">{sceneName}</span>
         </div>
       )}
-      <div ref={frameRef} className={`ascii-frame ${catClass} ${creepyClass}`}>
+      <div
+        ref={frameRef}
+        className={`ascii-frame ${catClass} ${creepyClass} ${viewClass} ${immersiveClass}`}
+      >
+        <div className="ascii-vignette" aria-hidden="true" />
+        <div className="ascii-scanlines" aria-hidden="true" />
         <div className="ascii-art-wrapper">
           <pre
             key={`${asciiKey}-${viewType}-${fadeKey}`}
             ref={artRef}
-            className={`ascii-art ${loading ? 'ascii-loading' : ''} ascii-art-hires`}
+            className={`ascii-art ${loading ? 'ascii-loading' : ''} ascii-art-hires ${viewClass}`}
           >
             {loading ? LOADING_ART : art}
           </pre>

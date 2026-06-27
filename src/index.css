@@ -803,18 +803,76 @@ body {
 
 .ascii-frame {
   width: 100%;
-  background: var(--color-bgSecondary);
+  background: #06060a;
   border: 2px solid color-mix(in srgb, var(--color-ascii) 35%, var(--color-border));
   border-radius: var(--border-radius);
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
   box-shadow:
-    inset 0 0 80px color-mix(in srgb, var(--color-ascii) 10%, transparent),
+    inset 0 0 100px rgba(0, 0, 0, 0.6),
     0 0 40px var(--color-asciiGlow, color-mix(in srgb, var(--color-ascii) 25%, transparent)),
-    0 8px 32px rgba(0, 0, 0, 0.3);
-  transition: border-color 0.3s, box-shadow 0.3s;
+    0 12px 40px rgba(0, 0, 0, 0.45);
+  transition: border-color 0.4s, box-shadow 0.4s;
+}
+
+.ascii-frame.ascii-immersive {
+  border-color: color-mix(in srgb, var(--color-ascii) 55%, var(--color-accent));
+  box-shadow:
+    inset 0 0 120px rgba(0, 0, 0, 0.75),
+    0 0 50px var(--color-asciiGlow, color-mix(in srgb, var(--color-ascii) 35%, transparent)),
+    0 12px 48px rgba(0, 0, 0, 0.5);
+}
+
+.ascii-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  background: radial-gradient(
+    ellipse 75% 70% at 50% 45%,
+    transparent 30%,
+    rgba(0, 0, 0, 0.35) 70%,
+    rgba(0, 0, 0, 0.75) 100%
+  );
+}
+
+.ascii-scanlines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+  opacity: 0.04;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(255, 255, 255, 0.15) 2px,
+    rgba(255, 255, 255, 0.15) 4px
+  );
+}
+
+.ascii-view-pov .ascii-view-tag,
+.ascii-scene-dot.ascii-view-pov {
+  color: var(--color-ascii);
+  text-shadow: 0 0 12px var(--color-asciiGlow);
+}
+
+.ascii-view-detail .ascii-view-tag {
+  color: var(--color-warning);
+}
+
+.ascii-view-portrait .ascii-view-tag {
+  color: var(--color-danger);
+}
+
+.ascii-scene-name {
+  color: var(--color-textMuted);
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0.02em;
 }
 
 .ascii-size-large .ascii-frame {
@@ -892,12 +950,14 @@ body {
 
 /* Scenario */
 .scenario-panel {
-  background: var(--color-surface);
+  background: color-mix(in srgb, var(--color-surface) 92%, transparent);
+  backdrop-filter: blur(8px);
   border: 1px solid var(--color-border);
   border-radius: var(--border-radius);
-  padding: 1.5rem;
+  padding: 1.5rem 1.75rem;
   margin-bottom: 1.5rem;
   border-left: 3px solid var(--color-accent);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
 }
 
 .scenario-text {
@@ -934,21 +994,22 @@ body {
   align-items: flex-start;
   gap: 1rem;
   padding: 1rem 1.25rem;
-  background: var(--color-optionBg);
+  background: color-mix(in srgb, var(--color-optionBg) 90%, transparent);
   border: 1px solid var(--color-optionBorder);
   border-radius: var(--border-radius);
   cursor: pointer;
   text-align: left;
-  transition: all 0.2s ease;
+  transition: all 0.22s ease;
   font-family: var(--font-body);
   color: var(--color-text);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .option-btn:hover:not(:disabled) {
   background: var(--color-optionHover);
-  border-color: var(--color-accent);
-  transform: translateX(4px);
-  box-shadow: -3px 0 0 var(--color-accent);
+  border-color: color-mix(in srgb, var(--color-accent) 60%, var(--color-optionBorder));
+  transform: translateX(6px);
+  box-shadow: -4px 0 0 var(--color-accent), 0 4px 16px rgba(0, 0, 0, 0.25);
 }
 
 .option-btn:disabled {
