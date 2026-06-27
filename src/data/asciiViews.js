@@ -228,6 +228,39 @@ export const ASCII_POV = {
 ║   "SAVE THEM!"                              "SAVE ME!"           ║
 ║   YOU CAN ONLY CUT ONE ROPE                                        ║
 ╚══════════════════════════════════════════════════════════════════╝`,
+
+  hands: `
+╔══════════════════════════════════════════════════════════════════╗
+║  YOUR HANDS — FIRST PERSON                                           ║
+║                                                                  ║
+║                    .---.     .---.                               ║
+║                   /     \\   /     \\                              ║
+║                  |  YOU  | |  YOU  |                             ║
+║                   \\     /   \\     /                              ║
+║                    '--+-----+--'                                 ║
+║                       |     |                                    ║
+║              trembling /     \\ gripping                         ║
+║                       |     |                                    ║
+║   sweat on palms · white knuckles · something wet on fingers     ║
+║   breath fogging the edge of your vision                         ║
+╚══════════════════════════════════════════════════════════════════╝`,
+
+  peephole: `
+╔══════════════════════════════════════════════════════════════════╗
+║  YOUR VIEW — THROUGH THE PEEPHOLE (FISHEYE)                          ║
+║                                                                  ║
+║              . . . . . . . . . . . . . . .                         ║
+║          . '   circular distortion ring   ' .                    ║
+║        . '    ┌─────────────────────┐    ' .                     ║
+║       '      │   FIGURE AT DOOR    │      '                      ║
+║      '       │      .-----.        │       '                     ║
+║     '        │     /  o o  \\       │        '                    ║
+║    '         │    |   \\_/   |      │         '                   ║
+║   '          │     \\  ---  /       │          '                  ║
+║    '         └─────────────────────┘         '                   ║
+║     '   porch light · long shadow · too still  '                 ║
+║      ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' '                  ║
+╚══════════════════════════════════════════════════════════════════╝`,
 };
 
 export const ASCII_DETAIL = {
@@ -255,12 +288,50 @@ export function sanitizeAsciiArt(art) {
 
 export function pickViewType(modeType) {
   if (modeType === 'let_them_in') return 'portrait';
-  if (modeType === 'who_to_save') return Math.random() < 0.6 ? 'pov' : 'scene';
-  if (modeType === 'witness') return Math.random() < 0.5 ? 'detail' : 'pov';
+  if (modeType === 'who_to_save') return Math.random() < 0.55 ? 'pov' : 'scene';
+  if (modeType === 'witness') return Math.random() < 0.45 ? 'detail' : 'pov';
   const roll = Math.random();
-  if (roll < 0.42) return 'scene';
-  if (roll < 0.72) return 'pov';
-  return 'detail';
+  if (roll < 0.32) return 'scene';
+  if (roll < 0.52) return 'pov';
+  if (roll < 0.72) return 'detail';
+  if (roll < 0.86) return 'hands';
+  return 'peephole';
+}
+
+/** Ordered camera cuts for one scenario — cycles for a cinematic feel */
+export function buildViewSequence(modeType, initialView, asciiKey) {
+  if (modeType === 'let_them_in') {
+    return ['portrait', 'peephole', 'detail', 'portrait', 'pov'];
+  }
+
+  const hasPov = ASCII_POV[asciiKey] || asciiKey === 'stranger_knock';
+  const cuts = [initialView];
+
+  const add = (view) => {
+    if (cuts[cuts.length - 1] !== view) cuts.push(view);
+  };
+
+  if (initialView !== 'pov' && (hasPov || true)) add('pov');
+  if (initialView !== 'detail') add('detail');
+  if (initialView !== 'scene') add('scene');
+  add('hands');
+  if (asciiKey === 'stranger_knock') add('peephole');
+  else if (Math.random() < 0.35) add('peephole');
+  add('pov');
+  add('detail');
+
+  return cuts.slice(0, 6);
+}
+
+export function getViewAtBeat(sequence, beat) {
+  if (!sequence?.length) return 'scene';
+  return sequence[Math.min(beat, sequence.length - 1)] ?? sequence[0];
+}
+
+export function getPhaseViewBeat(phase) {
+  if (phase === 'resolving') return 1;
+  if (phase === 'result') return 2;
+  return 0;
 }
 
 export function getAsciiView(key, viewType = 'scene', sceneArt) {
@@ -271,6 +342,10 @@ export function getAsciiView(key, viewType = 'scene', sceneArt) {
     raw = ASCII_POV[key] || ASCII_POV.default;
   } else if (viewType === 'detail') {
     raw = ASCII_DETAIL[key] || ASCII_DETAIL.default;
+  } else if (viewType === 'hands') {
+    raw = ASCII_POV.hands || ASCII_POV[key] || ASCII_POV.default;
+  } else if (viewType === 'peephole') {
+    raw = ASCII_POV.peephole || ASCII_POV.stranger_knock || ASCII_POV[key] || ASCII_POV.default;
   } else {
     raw = sceneArt;
   }

@@ -1,28 +1,59 @@
-import { useRef, useEffect, useCallback } from 'react';
+import { useRef, useEffect, useCallback, useState } from 'react';
 import { getAsciiArt } from '../data/asciiArt';
 import { getSceneName } from '../data/gameMeta';
 import { getViewLabel } from '../data/asciiViews';
 
 const LOADING_ART = `╔══════════════════════════════════════════════════════════════════╗
-║  GENERATING SCENE...                         ◐ ◓ ◑ ◒  loading   ║
+║  GENERATING SCENE...                         [~] loading          ║
 ║                                                                  ║
 ║   ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  ║
 ║   ░░  ┌────┐  ┌────┐  ┌────┐  ┌────┐  ┌────┐  ┌────┐  ┌────┐ ░░  ║
 ║   ░░  │ ?? │  │ ?? │  │ ?? │  │ ?? │  │ ?? │  │ ?? │  │ ?? │ ░░  ║
 ║   ░░  └────┘  └────┘  └────┘  └────┘  └────┘  └────┘  └────┘ ░░  ║
-║   ░░                                                          ░░  ║
 ║   ░░        BUILDING YOUR NEXT SCENARIO . . .                 ░░  ║
-║   ░░        adding details · objects · atmosphere             ░░  ║
-║   ░░                                                          ░░  ║
-║   ░░  ┌────┐  ┌────┐  ┌────┐  ┌────┐  ┌────┐  ┌────┐  ┌────┐ ░░  ║
-║   ░░  │ ?? │  │ ?? │  │ ?? │  │ ?? │  │ ?? │  │ ?? │  │ ?? │ ░░  ║
-║   ░░  └────┘  └────┘  └────┘  └────┘  └────┘  └────┘  └────┘ ░░  ║
 ║   ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  ║
 ╚══════════════════════════════════════════════════════════════════╝`;
+
+const MIN_FONT = 13;
+const MAX_FONT = 24;
+const PADDING = 28;
+
+function findOptimalFit(pre, frameW, frameH, dpr) {
+  let bestFont = MIN_FONT;
+  let bestScale = 0;
+
+  for (let fs = MIN_FONT; fs <= MAX_FONT; fs += 1) {
+    const renderSize = fs * dpr;
+    pre.style.fontSize = `${renderSize}px`;
+    pre.style.transform = 'none';
+    pre.style.width = 'max-content';
+
+    const artW = pre.scrollWidth;
+    const artH = pre.scrollHeight;
+    if (!artW || !artH) continue;
+
+    const scale = Math.min(frameW / artW, frameH / artH) * 0.97;
+    if (scale > bestScale) {
+      bestScale = scale;
+      bestFont = fs;
+    }
+  }
+
+  const renderSize = bestFont * dpr;
+  pre.style.fontSize = `${renderSize}px`;
+  pre.style.transform = 'none';
+
+  const artW = pre.scrollWidth;
+  const artH = pre.scrollHeight;
+  const scale = Math.min(frameW / artW, frameH / artH) * 0.97;
+
+  return { renderSize, scale, dpr };
+}
 
 export default function AsciiDisplay({
   asciiKey,
   viewType = 'scene',
+  viewBeat = 0,
   loading,
   category,
   isCreepy,
@@ -31,31 +62,33 @@ export default function AsciiDisplay({
 }) {
   const frameRef = useRef(null);
   const artRef = useRef(null);
+  const [fadeKey, setFadeKey] = useState(0);
   const art = getAsciiArt(asciiKey, viewType);
   const sceneName = getSceneName(asciiKey);
   const viewLabel = getViewLabel(viewType);
   const catClass = category ? `ascii-cat-${category}` : '';
   const creepyClass = isCreepy ? 'ascii-creepy' : '';
+  const showCut = viewBeat > 0;
 
   const fitArt = useCallback(() => {
     const frame = frameRef.current;
     const pre = artRef.current;
     if (!frame || !pre) return;
 
-    pre.style.transform = 'none';
-    pre.style.fontSize = '10px';
+    const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+    const frameW = frame.clientWidth - PADDING;
+    const frameH = frame.clientHeight - PADDING;
 
-    const frameW = frame.clientWidth - 32;
-    const frameH = frame.clientHeight - 32;
-    const artW = pre.scrollWidth;
-    const artH = pre.scrollHeight;
+    const { renderSize, scale } = findOptimalFit(pre, frameW, frameH, dpr);
 
-    if (artW === 0 || artH === 0) return;
-
-    const scale = Math.min(frameW / artW, frameH / artH) * 0.96;
-    pre.style.fontSize = '10px';
-    pre.style.transform = `scale(${scale})`;
+    pre.style.fontSize = `${renderSize}px`;
+    pre.style.transform = `scale(${scale}) translateZ(0)`;
+    pre.style.willChange = 'transform';
   }, []);
+
+  useEffect(() => {
+    setFadeKey((k) => k + 1);
+  }, [asciiKey, viewType]);
 
   useEffect(() => {
     fitArt();
@@ -69,7 +102,7 @@ export default function AsciiDisplay({
       observer.disconnect();
       window.removeEventListener('resize', fitArt);
     };
-  }, [asciiKey, viewType, loading, fitArt]);
+  }, [asciiKey, viewType, loading, art, fitArt]);
 
   return (
     <div className={`ascii-display ascii-size-${size}`}>
@@ -77,13 +110,18 @@ export default function AsciiDisplay({
         <div className="ascii-scene-label">
           <span className="ascii-scene-dot" />
           <span className="ascii-view-tag">{viewLabel}</span>
+          {showCut && <span className="ascii-cut-tag">cut {viewBeat + 1}</span>}
           <span className="ascii-scene-sep">/</span>
           {sceneName}
         </div>
       )}
       <div ref={frameRef} className={`ascii-frame ${catClass} ${creepyClass}`}>
         <div className="ascii-art-wrapper">
-          <pre ref={artRef} className={`ascii-art ${loading ? 'ascii-loading' : ''}`}>
+          <pre
+            key={`${asciiKey}-${viewType}-${fadeKey}`}
+            ref={artRef}
+            className={`ascii-art ${loading ? 'ascii-loading' : ''} ascii-art-hires`}
+          >
             {loading ? LOADING_ART : art}
           </pre>
         </div>

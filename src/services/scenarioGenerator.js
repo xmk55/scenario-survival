@@ -1,4 +1,4 @@
-import { pickViewType } from '../data/asciiViews';
+import { pickViewType, buildViewSequence } from '../data/asciiViews';
 
 const SCENARIO_TEMPLATES = [
   {
@@ -660,11 +660,13 @@ function enumerateVariants(pool) {
 function buildScenarioFromVariant(template, setupIndex, optionSetIndex, mode = 'survival') {
   const fingerprint = getVariantFingerprint(template, setupIndex, optionSetIndex);
   const viewType = pickViewType('standard');
+  const viewSequence = buildViewSequence('standard', viewType, template.asciiKey);
   return {
     id: `local-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     category: template.category,
     asciiKey: template.asciiKey,
     viewType,
+    viewSequence,
     setup: template.setups[setupIndex],
     options: shuffleArray(template.optionPatterns[optionSetIndex]),
     template,
@@ -845,11 +847,15 @@ Make options meaningfully different — risky, cautious, and clever. Real-life s
   const jsonStr = content.replace(/```json\n?|\n?```/g, '');
   const parsed = JSON.parse(jsonStr);
   const setup = parsed.setup;
+  const asciiKey = parsed.asciiKey || 'default';
+  const viewType = pickViewType('standard');
 
   return {
     id: `ai-${Date.now()}`,
     category: parsed.category || 'mystery',
-    asciiKey: parsed.asciiKey || 'default',
+    asciiKey,
+    viewType,
+    viewSequence: buildViewSequence('standard', viewType, asciiKey),
     setup,
     options: parsed.options.slice(0, 3),
     fingerprint: `ai:${setup.trim().slice(0, 160)}`,

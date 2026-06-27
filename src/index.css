@@ -847,16 +847,42 @@ body {
 
 .ascii-art {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 16px;
   color: var(--color-ascii);
-  line-height: 1.15;
+  line-height: 1.12;
+  letter-spacing: 0.015em;
   white-space: pre;
   margin: 0;
   text-align: center;
   transform-origin: center center;
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-variant-ligatures: none;
+  backface-visibility: hidden;
   text-shadow:
     0 0 16px var(--color-asciiGlow, color-mix(in srgb, var(--color-ascii) 50%, transparent)),
     0 0 32px color-mix(in srgb, var(--color-ascii) 20%, transparent);
+  animation: ascii-view-in 0.45s ease;
+}
+
+.ascii-art-hires {
+  image-rendering: -webkit-optimize-contrast;
+}
+
+.ascii-cut-tag {
+  font-size: 0.65rem;
+  color: var(--color-textMuted);
+  text-transform: lowercase;
+  letter-spacing: 0.04em;
+  padding: 0.1rem 0.35rem;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+}
+
+@keyframes ascii-view-in {
+  from { opacity: 0.35; filter: blur(1px); }
+  to { opacity: 1; filter: blur(0); }
 }
 
 .ascii-loading {

@@ -1,8 +1,9 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import AsciiDisplay from './AsciiDisplay';
 import OptionButtons from './OptionButtons';
 import { useSound } from '../context/SoundContext';
 import { buildDeathSummary } from '../data/gameMeta';
+import { getViewAtBeat, getPhaseViewBeat } from '../data/asciiViews';
 
 const CATEGORY_LABELS = {
   horror: 'Horror',
@@ -141,13 +142,36 @@ export default function GameScreen({
   const prevScenarioId = useRef(null);
   const prevCombo = useRef(0);
   const prevStrikes = useRef(strikes);
+  const [viewBeat, setViewBeat] = useState(0);
   const isHorrorMode = modeConfig.id === 'horror';
   const isEveryday = scenario?.tone === 'everyday';
+
+  const activeViewType = useMemo(() => {
+    if (!scenario) return 'scene';
+    const phaseBeat = getPhaseViewBeat(phase);
+    const beat = viewBeat + phaseBeat;
+    if (scenario.viewSequence?.length) {
+      return getViewAtBeat(scenario.viewSequence, beat);
+    }
+    return scenario.viewType || 'scene';
+  }, [scenario, viewBeat, phase]);
 
   const isEndless = modeConfig.endless;
   const roundLabel = isEndless
     ? `Round ${round + 1}`
     : `Round ${round + 1}/${modeConfig.maxRounds}`;
+
+  useEffect(() => {
+    setViewBeat(0);
+  }, [scenario?.id]);
+
+  useEffect(() => {
+    if (phase !== 'playing' || !scenario || loading) return undefined;
+    const interval = setInterval(() => {
+      setViewBeat((b) => b + 1);
+    }, 11000);
+    return () => clearInterval(interval);
+  }, [phase, scenario?.id, loading]);
 
   useEffect(() => {
     if (phase === 'result' && lastResult) {
@@ -354,7 +378,8 @@ export default function GameScreen({
 
       <AsciiDisplay
         asciiKey={scenario?.portraitKey || scenario?.asciiKey}
-        viewType={scenario?.viewType || 'scene'}
+        viewType={activeViewType}
+        viewBeat={viewBeat + getPhaseViewBeat(phase)}
         loading={loading && !scenario}
         category={scenario?.category}
         isCreepy={scenario?.isCreepy}

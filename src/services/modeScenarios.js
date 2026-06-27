@@ -1,4 +1,4 @@
-import { pickViewType } from '../data/asciiViews';
+import { pickViewType, buildViewSequence } from '../data/asciiViews';
 
 function pickRandom(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
@@ -14,11 +14,15 @@ function shuffle(arr) {
 }
 
 function baseScenario(data) {
+  const viewType = data.viewType || 'scene';
+  const modeType = data.modeType;
+  const asciiKey = data.portraitKey || data.asciiKey || 'default';
   return {
     id: `mode-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     isAi: false,
     isModeScenario: true,
-    viewType: data.viewType || 'scene',
+    viewType,
+    viewSequence: data.viewSequence || buildViewSequence(modeType, viewType, asciiKey),
     fingerprint: data.fingerprint || `mode:${data.modeType}:${data.setup?.slice(0, 60)}`,
     ...data,
   };
