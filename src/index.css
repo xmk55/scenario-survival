@@ -379,6 +379,40 @@ body {
   margin-bottom: 0.75rem;
 }
 
+.mode-grid-special {
+  grid-template-columns: repeat(4, 1fr);
+  max-height: 220px;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+.mode-select-subtitle {
+  margin-top: 1rem;
+  font-size: 0.95rem;
+}
+
+.mode-grid-classic {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.mode-card .mode-icon {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--mode-color, var(--color-accent));
+}
+
+.ascii-view-tag {
+  color: var(--color-accentSecondary);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ascii-scene-sep {
+  opacity: 0.4;
+  margin: 0 0.35rem;
+}
+
 .mode-card {
   display: flex;
   flex-direction: column;
@@ -645,7 +679,39 @@ body {
   color: var(--color-accentSecondary);
 }
 
-/* Health Bar */
+/* Strikes Bar */
+.strikes-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.strikes-track {
+  flex: 1;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.strike-slot {
+  flex: 1;
+  height: 10px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  transition: background 0.3s ease;
+}
+
+.strike-slot.open {
+  background: color-mix(in srgb, var(--color-success) 35%, var(--color-bgTertiary));
+}
+
+.strike-slot.used {
+  background: color-mix(in srgb, var(--color-danger) 70%, transparent);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--color-danger) 40%, transparent);
+}
+
+/* Health Bar (legacy) */
 .health-bar {
   display: flex;
   align-items: center;
@@ -1607,5 +1673,10 @@ body {
 
   .mode-grid {
     grid-template-columns: 1fr;
+  }
+
+  .mode-grid-special {
+    grid-template-columns: 1fr;
+    max-height: 280px;
   }
 }

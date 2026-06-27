@@ -1,6 +1,7 @@
 import { useRef, useEffect, useCallback } from 'react';
 import { getAsciiArt } from '../data/asciiArt';
 import { getSceneName } from '../data/gameMeta';
+import { getViewLabel } from '../data/asciiViews';
 
 const LOADING_ART = `╔══════════════════════════════════════════════════════════════════╗
 ║  GENERATING SCENE...                         ◐ ◓ ◑ ◒  loading   ║
@@ -21,6 +22,7 @@ const LOADING_ART = `╔══════════════════�
 
 export default function AsciiDisplay({
   asciiKey,
+  viewType = 'scene',
   loading,
   category,
   isCreepy,
@@ -29,8 +31,9 @@ export default function AsciiDisplay({
 }) {
   const frameRef = useRef(null);
   const artRef = useRef(null);
-  const art = getAsciiArt(asciiKey);
+  const art = getAsciiArt(asciiKey, viewType);
   const sceneName = getSceneName(asciiKey);
+  const viewLabel = getViewLabel(viewType);
   const catClass = category ? `ascii-cat-${category}` : '';
   const creepyClass = isCreepy ? 'ascii-creepy' : '';
 
@@ -66,13 +69,15 @@ export default function AsciiDisplay({
       observer.disconnect();
       window.removeEventListener('resize', fitArt);
     };
-  }, [asciiKey, loading, fitArt]);
+  }, [asciiKey, viewType, loading, fitArt]);
 
   return (
     <div className={`ascii-display ascii-size-${size}`}>
       {showLabel && !loading && asciiKey && (
         <div className="ascii-scene-label">
           <span className="ascii-scene-dot" />
+          <span className="ascii-view-tag">{viewLabel}</span>
+          <span className="ascii-scene-sep">/</span>
           {sceneName}
         </div>
       )}

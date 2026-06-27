@@ -37,9 +37,13 @@ export const DEATH_CAUSE_INFO = {
     title: 'Ran Out of Time',
     explanation: 'You hesitated too long. In Arcade mode, the clock doesn\'t wait for anyone.',
   },
+  strikes_out: {
+    title: 'Three Strikes',
+    explanation: 'Too many wrong calls. The run ends when you hit the strike limit.',
+  },
   health_depleted: {
     title: 'Wellbeing Collapsed',
-    explanation: 'Too many setbacks stacked up. Your health or wellbeing finally hit zero.',
+    explanation: 'Too many setbacks stacked up.',
   },
   fatal_choice: {
     title: 'Fatal Decision',

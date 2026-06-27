@@ -1,3 +1,5 @@
+import { pickViewType } from '../data/asciiViews';
+
 const SCENARIO_TEMPLATES = [
   {
     category: 'horror',
@@ -655,12 +657,14 @@ function enumerateVariants(pool) {
   return variants;
 }
 
-function buildScenarioFromVariant(template, setupIndex, optionSetIndex) {
+function buildScenarioFromVariant(template, setupIndex, optionSetIndex, mode = 'survival') {
   const fingerprint = getVariantFingerprint(template, setupIndex, optionSetIndex);
+  const viewType = pickViewType('standard');
   return {
     id: `local-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     category: template.category,
     asciiKey: template.asciiKey,
+    viewType,
     setup: template.setups[setupIndex],
     options: shuffleArray(template.optionPatterns[optionSetIndex]),
     template,

@@ -1,3 +1,5 @@
+import { getAsciiView } from './asciiViews';
+
 export const ASCII_ART = {
   bedroom_killer: `
 ╔══════════════════════════════════════════════════════════════════╗
@@ -608,6 +610,7 @@ export const ASCII_ART = {
 ╚══════════════════════════════════════════════════════════════════╝`,
 };
 
-export function getAsciiArt(key) {
-  return ASCII_ART[key] || ASCII_ART.default;
+export function getAsciiArt(key, viewType = 'scene') {
+  const sceneArt = ASCII_ART[key] || ASCII_ART.default;
+  return getAsciiView(key, viewType, sceneArt);
 }

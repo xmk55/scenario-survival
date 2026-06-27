@@ -31,7 +31,8 @@ export default function App() {
           modeConfig={game.modeConfig}
           scenario={game.scenario}
           round={game.round}
-          health={game.health}
+          strikes={game.strikes}
+          maxStrikes={game.maxStrikes}
           score={game.score}
           combo={game.combo}
           timeLeft={game.timeLeft}

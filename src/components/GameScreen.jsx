@@ -16,21 +16,33 @@ const CATEGORY_LABELS = {
 
 const LOADING_TEXTS = {
   horror: 'Something stirs in the dark...',
+  quiz: 'Loading the next question...',
+  intuition: 'Testing your gut feeling...',
+  who_to_save: 'Two lives hang in the balance...',
+  let_them_in: 'Someone is at the door...',
+  lie_detector: 'Statements loading...',
+  moral: 'Weighing the ethics...',
+  witness: 'Play back the memory...',
+  trust: 'Who do you trust?',
   everyday: 'Life throws another curveball...',
   social: 'An awkward moment approaches...',
   work: 'Another day, another dilemma...',
   default: 'Preparing your next scenario...',
 };
 
-function HealthBar({ health, isEveryday }) {
-  const color = health > 60 ? 'var(--color-success)' : health > 30 ? 'var(--color-warning)' : 'var(--color-danger)';
+function StrikesBar({ strikes, maxStrikes }) {
+  const remaining = Math.max(0, maxStrikes - strikes);
+  const pct = (remaining / maxStrikes) * 100;
+  const color = remaining >= 2 ? 'var(--color-success)' : remaining === 1 ? 'var(--color-warning)' : 'var(--color-danger)';
   return (
-    <div className="health-bar">
-      <span className="stat-label">{isEveryday ? 'Wellbeing' : 'Health'}</span>
-      <div className="health-track">
-        <div className="health-fill" style={{ width: `${health}%`, background: color }} />
+    <div className="strikes-bar">
+      <span className="stat-label">Strikes</span>
+      <div className="strikes-track">
+        {Array.from({ length: maxStrikes }, (_, i) => (
+          <span key={i} className={`strike-slot ${i < strikes ? 'used' : 'open'}`} />
+        ))}
       </div>
-      <span className="stat-value">{health}%</span>
+      <span className="stat-value" style={{ color }}>{remaining} left</span>
     </div>
   );
 }
@@ -81,6 +93,7 @@ function DeathRecap({ deathInfo, runStats }) {
       {summary.asciiKey && (
         <AsciiDisplay
           asciiKey={summary.asciiKey}
+          viewType={deathInfo?.viewType || 'scene'}
           category={summary.category}
           isCreepy={deathInfo?.tone !== 'everyday'}
           size="large"
@@ -107,7 +120,8 @@ export default function GameScreen({
   modeConfig,
   scenario,
   round,
-  health,
+  strikes,
+  maxStrikes,
   score,
   combo,
   timeLeft,
@@ -126,7 +140,7 @@ export default function GameScreen({
   const prevPhase = useRef(phase);
   const prevScenarioId = useRef(null);
   const prevCombo = useRef(0);
-  const prevHealth = useRef(health);
+  const prevStrikes = useRef(strikes);
   const isHorrorMode = modeConfig.id === 'horror';
   const isEveryday = scenario?.tone === 'everyday';
 
@@ -145,12 +159,12 @@ export default function GameScreen({
       } else if (lastResult.resultType === 'good') {
         play(isEveryday ? 'relief' : 'good');
       } else if (lastResult.resultType === 'bad') {
-        play(health <= 20 ? 'critical' : 'bad');
+        play(strikes >= maxStrikes - 1 ? 'critical' : 'bad');
       } else {
         play('neutral');
       }
     }
-  }, [phase, lastResult, play, isHorrorMode, scenario?.isCreepy, health, isEveryday]);
+  }, [phase, lastResult, play, isHorrorMode, scenario?.isCreepy, strikes, maxStrikes, isEveryday]);
 
   useEffect(() => {
     const prev = prevPhase.current;
@@ -211,13 +225,11 @@ export default function GameScreen({
   }, [combo, modeConfig.id, play]);
 
   useEffect(() => {
-    if (health < prevHealth.current && phase === 'playing') {
-      if (isHorrorMode && health <= 30) play('horrorLowHealth');
-      else if (health <= 25) play('lowHealth');
-      else play('damage');
+    if (strikes > prevStrikes.current && phase === 'result') {
+      play(modeConfig.id === 'horror' || scenario?.isCreepy ? 'horrorLowHealth' : 'damage');
     }
-    prevHealth.current = health;
-  }, [health, phase, play, isHorrorMode]);
+    prevStrikes.current = strikes;
+  }, [strikes, phase, play, modeConfig.id, scenario?.isCreepy]);
 
   useEffect(() => {
     const handler = (e) => {
@@ -249,7 +261,7 @@ export default function GameScreen({
    ║                           ║
    ╚═══════════════════════════╝`}</pre>
         <h2>{modeConfig.id === 'horror' ? 'The Darkness Claims You' : 'Run Over'}</h2>
-        {newRecord && <span className="new-record-badge">🏆 New High Score!</span>}
+        {newRecord && <span className="new-record-badge">[NEW HIGH SCORE]</span>}
 
         <DeathRecap deathInfo={deathInfo} runStats={runStats} />
 
@@ -284,10 +296,10 @@ export default function GameScreen({
    ║                           ║
    ╚═══════════════════════════╝`}</pre>
         <h2>{modeConfig.id === 'horror' ? 'You Escaped the Nightmare' : 'You Made It!'}</h2>
-        {newRecord && <span className="new-record-badge">🏆 New High Score!</span>}
+        {newRecord && <span className="new-record-badge">[NEW HIGH SCORE]</span>}
         <p className="end-score">Final Score: <strong>{score.toLocaleString()}</strong></p>
         <p className="end-detail">
-          All {modeConfig.maxRounds} scenarios with {health}% remaining
+          All {modeConfig.maxRounds} rounds cleared with {maxStrikes - strikes} strike{maxStrikes - strikes !== 1 ? 's' : ''} to spare
         </p>
         <RunStatsBar stats={runStats} />
         <div className="end-actions">
@@ -303,9 +315,9 @@ export default function GameScreen({
   }
 
   const categoryLabel = CATEGORY_LABELS[scenario?.category] || scenario?.category;
-  const loadingText = modeConfig.id === 'horror'
-    ? LOADING_TEXTS.horror
-    : LOADING_TEXTS[scenario?.category] || LOADING_TEXTS.default;
+  const loadingText = LOADING_TEXTS[modeConfig.id]
+    || LOADING_TEXTS[scenario?.category]
+    || LOADING_TEXTS.default;
 
   return (
     <div className={`game-screen mode-${modeConfig.id}`}>
@@ -318,7 +330,7 @@ export default function GameScreen({
           {scenario?.category && (
             <span className={`category-badge cat-${scenario.category}`}>{categoryLabel}</span>
           )}
-          {scenario?.isCreepy && <span className="creepy-badge">☠️ Nightmare</span>}
+          {scenario?.isCreepy && <span className="creepy-badge">[NIGHTMARE]</span>}
           {scenario?.isAi && <span className="ai-badge">AI</span>}
         </div>
         <div className="game-header-right">
@@ -330,7 +342,7 @@ export default function GameScreen({
         </div>
       </header>
 
-      <HealthBar health={health} isEveryday={isEveryday} />
+      <StrikesBar strikes={strikes} maxStrikes={maxStrikes} />
       {modeConfig.timed && timeLeft !== null && (
         <TimerBar timeLeft={timeLeft} maxTime={modeConfig.timePerRound} />
       )}
@@ -341,7 +353,8 @@ export default function GameScreen({
       )}
 
       <AsciiDisplay
-        asciiKey={scenario?.asciiKey}
+        asciiKey={scenario?.portraitKey || scenario?.asciiKey}
+        viewType={scenario?.viewType || 'scene'}
         loading={loading && !scenario}
         category={scenario?.category}
         isCreepy={scenario?.isCreepy}
@@ -357,8 +370,8 @@ export default function GameScreen({
             )}
             <p className="result-choice">You chose: <em>"{lastResult.chosenOption}"</em></p>
             <p className="result-outcome">{lastResult.outcome}</p>
-            {lastResult.resultType === 'bad' && health <= 20 && (
-              <p className="result-warning">⚠️ Your wellbeing is critically low!</p>
+            {lastResult.resultType === 'bad' && strikes >= maxStrikes - 1 && (
+              <p className="result-warning">[!] One more strike ends the run!</p>
             )}
             <button
               className="btn btn-primary"
@@ -380,12 +393,18 @@ export default function GameScreen({
 
             {scenario?.options && (
               <div className="options-section">
-                <h3 className="options-title">What do you do?</h3>
+                <h3 className="options-title">
+                  {scenario.modeType === 'let_them_in' && scenario.interviewPhase === 'question'
+                    ? 'Ask a question — or decide now'
+                    : scenario.modeType === 'let_them_in'
+                      ? 'Let them in?'
+                      : 'What do you do?'}
+                </h3>
                 <OptionButtons
                   options={scenario.options}
                   onSelect={onSelectOption}
                   disabled={loading || phase === 'resolving'}
-                  isHorror={isHorrorMode}
+                  isHorror={isHorrorMode || scenario?.modeType === 'let_them_in'}
                   isCreepy={scenario?.isCreepy}
                 />
               </div>
