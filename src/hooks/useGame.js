@@ -14,8 +14,11 @@ import {
 } from '../services/modeScenarios';
 import { getScenarioAsciiFingerprint } from '../data/asciiViews';
 import { GAME_MODES, saveHighScore } from '../data/gameModes';
+import { useAuth } from '../context/AuthContext';
+import { saveRunProgress } from '../services/userProgressService';
 
 export function useGame() {
+  const { user, applyRunResult } = useAuth();
   const [phase, setPhase] = useState('menu');
   const [gameMode, setGameMode] = useState('survival');
   const [scenario, setScenario] = useState(null);
@@ -41,6 +44,8 @@ export function useGame() {
   );
   const [playedFingerprints, setPlayedFingerprints] = useState([]);
   const [playedAsciiFingerprints, setPlayedAsciiFingerprints] = useState([]);
+  const playedHistoryRef = useRef({ fingerprints: [], ascii: [] });
+  const scenariosThisRunRef = useRef(0);
   const timerRef = useRef(null);
   const timedOutRef = useRef(false);
 
@@ -88,29 +93,29 @@ export function useGame() {
     setScenario(next);
     const fingerprint = getScenarioFingerprint(next);
     const asciiFingerprint = getScenarioAsciiFingerprint(next);
-    if (next.poolRefreshed) {
-      setPlayedFingerprints(fingerprint ? [fingerprint] : []);
-      setPlayedAsciiFingerprints(asciiFingerprint ? [asciiFingerprint] : []);
-    } else {
-      setPlayedFingerprints((prev) => (
-        fingerprint && !prev.includes(fingerprint) ? [...prev, fingerprint] : prev
-      ));
-      setPlayedAsciiFingerprints((prev) => (
-        asciiFingerprint && !prev.includes(asciiFingerprint) ? [...prev, asciiFingerprint] : prev
-      ));
+
+    if (fingerprint && !playedHistoryRef.current.fingerprints.includes(fingerprint)) {
+      playedHistoryRef.current.fingerprints.push(fingerprint);
     }
+    if (asciiFingerprint && !playedHistoryRef.current.ascii.includes(asciiFingerprint)) {
+      playedHistoryRef.current.ascii.push(asciiFingerprint);
+    }
+
+    setPlayedFingerprints([...playedHistoryRef.current.fingerprints]);
+    setPlayedAsciiFingerprints([...playedHistoryRef.current.ascii]);
+    scenariosThisRunRef.current += 1;
     setUsedCategories((prev) => [...prev, next.category]);
   }, []);
 
-  const loadScenario = useCallback(async (currentRound, categories, history, mode, played, playedAscii = []) => {
+  const loadScenario = useCallback(async (currentRound, categories, history, mode) => {
     setLoading(true);
     setError(null);
     setStayOnScenario(false);
     const config = GAME_MODES[mode] || GAME_MODES.survival;
     const genOptions = {
       mode,
-      playedFingerprints: played,
-      playedAsciiFingerprints: playedAscii,
+      playedFingerprints: [...playedHistoryRef.current.fingerprints],
+      playedAsciiFingerprints: [...playedHistoryRef.current.ascii],
       allowRepeats,
     };
     try {
@@ -134,8 +139,31 @@ export function useGame() {
     }
   }, [useAi, apiKey, allowRepeats, registerScenario, isSpecialMode]);
 
+  const persistRun = useCallback(async (finalScore, finalRound, finalCombo, won, finalStrikes, stats) => {
+    const isRecord = saveHighScore(gameMode, finalScore, { rounds: finalRound + 1, combo: finalCombo });
+    setNewRecord(isRecord);
+
+    if (!user) return;
+
+    try {
+      const result = await saveRunProgress(user.uid, {
+        modeId: gameMode,
+        score: finalScore,
+        rounds: finalRound + 1,
+        combo: finalCombo,
+        strikes: finalStrikes,
+        maxStrikes,
+        won,
+        runStats: stats,
+        scenariosCompleted: scenariosThisRunRef.current,
+      });
+      applyRunResult(result);
+    } catch {
+      // Local scores still saved
+    }
+  }, [user, gameMode, maxStrikes, applyRunResult]);
+
   const startGame = useCallback(async (mode = 'survival') => {
-    const config = GAME_MODES[mode] || GAME_MODES.survival;
     setGameMode(mode);
     setPhase('playing');
     setRound(0);
@@ -151,20 +179,21 @@ export function useGame() {
     setRunStats({ good: 0, neutral: 0, bad: 0 });
     setLastScenario(null);
     setStayOnScenario(false);
+    playedHistoryRef.current = { fingerprints: [], ascii: [] };
+    scenariosThisRunRef.current = 0;
     setPlayedFingerprints([]);
     setPlayedAsciiFingerprints([]);
     timedOutRef.current = false;
-    await loadScenario(0, [], [], mode, [], []);
+    await loadScenario(0, [], [], mode);
     startRoundTimer();
   }, [loadScenario, startRoundTimer]);
 
-  const finishGame = useCallback((finalScore, finalRound, finalCombo) => {
+  const finishGame = useCallback((finalScore, finalRound, finalCombo, won, finalStrikes, stats) => {
     clearTimer();
-    const isRecord = saveHighScore(gameMode, finalScore, { rounds: finalRound + 1, combo: finalCombo });
-    setNewRecord(isRecord);
-  }, [gameMode, clearTimer]);
+    persistRun(finalScore, finalRound, finalCombo, won, finalStrikes, stats);
+  }, [clearTimer, persistRun]);
 
-  const failRun = useCallback((optionText, result, ctxScenario, cause, finalScore, finalCombo) => {
+  const failRun = useCallback((optionText, result, ctxScenario, cause, finalScore, finalCombo, finalStrikes, stats) => {
     setDeathInfo({
       cause,
       choice: optionText,
@@ -175,7 +204,7 @@ export function useGame() {
       category: ctxScenario?.category,
       tone: ctxScenario?.tone,
     });
-    finishGame(finalScore, round, finalCombo);
+    finishGame(finalScore, round, finalCombo, false, finalStrikes, stats);
     setTimeout(() => setPhase('gameover'), 0);
   }, [round, finishGame]);
 
@@ -190,14 +219,15 @@ export function useGame() {
     const newScore = score + (result.scoreDelta || 0);
     const newCombo = result.resultType === 'good' ? combo + 1 : 0;
     const newStrikes = result.addStrike ? strikes + 1 : strikes;
+    const newRunStats = {
+      ...runStats,
+      [result.resultType]: (runStats[result.resultType] || 0) + 1,
+    };
 
     setScore(newScore);
     setCombo(newCombo);
     setStrikes(newStrikes);
-    setRunStats((s) => ({
-      ...s,
-      [result.resultType]: (s[result.resultType] || 0) + 1,
-    }));
+    setRunStats(newRunStats);
     setLastResult({ ...result, chosenOption: optionText });
     setChoiceHistory((prev) => [...prev, optionText]);
     if (ctxScenario) setLastScenario(ctxScenario);
@@ -215,21 +245,21 @@ export function useGame() {
         : outOfStrikes
           ? 'strikes_out'
           : 'fatal_choice';
-      failRun(optionText, result, ctxScenario, cause, newScore, newCombo);
+      failRun(optionText, result, ctxScenario, cause, newScore, newCombo, newStrikes, newRunStats);
       return false;
     }
 
     const config = GAME_MODES[gameMode];
     const nextRound = round + 1;
     if (!config.endless && config.maxRounds && nextRound >= config.maxRounds && !keepScenario) {
-      finishGame(newScore, round, newCombo);
+      finishGame(newScore, round, newCombo, true, newStrikes, newRunStats);
       setTimeout(() => setPhase('victory'), 0);
       return false;
     }
 
     if (!keepScenario) setRound(nextRound);
     return true;
-  }, [score, combo, strikes, round, gameMode, maxStrikes, clearTimer, finishGame, failRun]);
+  }, [score, combo, strikes, round, gameMode, maxStrikes, runStats, clearTimer, finishGame, failRun]);
 
   const selectOption = useCallback(async (optionIndex, forcedTimeout = false) => {
     if (!scenario || loading) return;
@@ -320,9 +350,9 @@ export function useGame() {
       startRoundTimer();
       return;
     }
-    await loadScenario(round, usedCategories, choiceHistory, gameMode, playedFingerprints, playedAsciiFingerprints);
+    await loadScenario(round, usedCategories, choiceHistory, gameMode);
     startRoundTimer();
-  }, [phase, round, usedCategories, choiceHistory, gameMode, playedFingerprints, playedAsciiFingerprints, loadScenario, startRoundTimer, stayOnScenario]);
+  }, [phase, round, usedCategories, choiceHistory, gameMode, loadScenario, startRoundTimer, stayOnScenario]);
 
   const goToMenu = useCallback(() => {
     clearTimer();
@@ -371,7 +401,6 @@ export function useGame() {
     apiKey,
     useAi,
     allowRepeats,
-    playedFingerprints,
     startGame,
     selectOption,
     continueGame,

@@ -363,9 +363,6 @@ export default function GameScreen({
       )}
 
       {error && <div className="error-banner">{error}</div>}
-      {scenario?.poolRefreshed && (
-        <div className="info-banner">You have seen every scenario — fresh content is shuffled in.</div>
-      )}
 
       <AsciiDisplay
         asciiKey={scenario?.asciiKey}

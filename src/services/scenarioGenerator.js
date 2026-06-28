@@ -1,4 +1,5 @@
-import { pickViewType, hasFreshAsciiView } from '../data/asciiViews';
+import { pickViewType } from '../data/asciiViews';
+import { pickFromPool } from './dedupUtils';
 
 const SCENARIO_TEMPLATES = [
   {
@@ -631,34 +632,50 @@ function getTemplatePool(mode, usedCategories) {
   return available.length ? available : ALL_GENERAL_TEMPLATES;
 }
 
-function getVariantFingerprint(template, setupIndex, optionSetIndex) {
-  return `${template.asciiKey}:${setupIndex}:${optionSetIndex}`;
+function getVariantFingerprint(variant) {
+  if (typeof variant === 'object' && variant.templateIndex !== undefined) {
+    return `local:${variant.templateIndex}:${variant.setupIndex}:${variant.optionSetIndex}`;
+  }
+  const template = variant.template || variant;
+  const setupIndex = variant.setupIndex ?? 0;
+  const optionSetIndex = variant.optionSetIndex ?? 0;
+  const setupSnippet = template.setups?.[setupIndex]?.slice(0, 48) || '';
+  return `local:${template.asciiKey}:${setupIndex}:${optionSetIndex}:${setupSnippet}`;
 }
 
 export function getScenarioFingerprint(scenario) {
   if (!scenario) return '';
   if (scenario.fingerprint) return scenario.fingerprint;
   if (scenario.isAi) return `ai:${(scenario.setup || '').trim().slice(0, 160)}`;
+  if (scenario.templateIndex !== undefined && scenario.setupIndex !== undefined && scenario.optionSetIndex !== undefined) {
+    return getVariantFingerprint(scenario);
+  }
   if (scenario.setupIndex !== undefined && scenario.optionSetIndex !== undefined) {
-    return getVariantFingerprint(scenario.template || { asciiKey: scenario.asciiKey }, scenario.setupIndex, scenario.optionSetIndex);
+    return getVariantFingerprint({
+      template: scenario.template || { asciiKey: scenario.asciiKey, setups: [scenario.setup] },
+      setupIndex: scenario.setupIndex,
+      optionSetIndex: scenario.optionSetIndex,
+    });
   }
   return `${scenario.asciiKey}:${(scenario.setup || '').trim().slice(0, 80)}`;
 }
 
 function enumerateVariants(pool) {
   const variants = [];
-  for (const template of pool) {
+  for (let templateIndex = 0; templateIndex < pool.length; templateIndex += 1) {
+    const template = pool[templateIndex];
     for (let s = 0; s < template.setups.length; s++) {
       for (let o = 0; o < template.optionPatterns.length; o++) {
-        variants.push({ template, setupIndex: s, optionSetIndex: o });
+        variants.push({ template, templateIndex, setupIndex: s, optionSetIndex: o });
       }
     }
   }
   return variants;
 }
 
-function buildScenarioFromVariant(template, setupIndex, optionSetIndex, mode = 'survival', genOptions = {}) {
-  const fingerprint = getVariantFingerprint(template, setupIndex, optionSetIndex);
+function buildScenarioFromVariant(variant, mode = 'survival', genOptions = {}) {
+  const { template, templateIndex, setupIndex, optionSetIndex } = variant;
+  const fingerprint = getVariantFingerprint(variant);
   const { playedAsciiFingerprints = [], allowRepeats = false } = genOptions;
   const viewType = pickViewType('standard', {
     asciiKey: template.asciiKey,
@@ -673,6 +690,7 @@ function buildScenarioFromVariant(template, setupIndex, optionSetIndex, mode = '
     setup: template.setups[setupIndex],
     options: shuffleArray(template.optionPatterns[optionSetIndex]),
     template,
+    templateIndex,
     setupIndex,
     optionSetIndex,
     fingerprint,
@@ -715,42 +733,16 @@ export function generateLocalScenario(round = 0, usedCategories = [], options = 
 
   const pool = getTemplatePool(mode, usedCategories);
   const allVariants = enumerateVariants(pool);
-  const playedSet = new Set(playedFingerprints);
 
-  let candidateVariants = allVariants;
-  let poolRefreshed = false;
-
-  if (!allowRepeats && playedSet.size > 0) {
-    const unplayed = allVariants.filter(
-      (v) => !playedSet.has(getVariantFingerprint(v.template, v.setupIndex, v.optionSetIndex))
-    );
-    if (unplayed.length > 0) {
-      candidateVariants = unplayed;
-    } else {
-      candidateVariants = allVariants;
-      poolRefreshed = true;
-    }
-  }
-
-  if (!allowRepeats && playedAsciiFingerprints.length) {
-    const freshAscii = candidateVariants.filter((v) =>
-      hasFreshAsciiView(v.template.asciiKey, 'standard', playedAsciiFingerprints)
-    );
-    if (freshAscii.length) {
-      candidateVariants = freshAscii;
-    }
-  }
-
-  const picked = pickWeightedVariant(candidateVariants, mode);
-  const scenario = buildScenarioFromVariant(
-    picked.template,
-    picked.setupIndex,
-    picked.optionSetIndex,
-    mode,
-    { playedAsciiFingerprints, allowRepeats: allowRepeats || poolRefreshed }
+  const picked = pickFromPool(
+    allVariants,
+    getVariantFingerprint,
+    playedFingerprints,
+    allowRepeats,
+    (items) => pickWeightedVariant(items, mode)
   );
-  if (poolRefreshed) scenario.poolRefreshed = true;
-  return scenario;
+
+  return buildScenarioFromVariant(picked, mode, { playedAsciiFingerprints, allowRepeats });
 }
 
 export function resolveChoice(scenario, optionIndex, round, mode = 'survival', combo = 0) {

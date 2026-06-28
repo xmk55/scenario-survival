@@ -1,4 +1,5 @@
-import { pickViewType, hasFreshAsciiView } from '../data/asciiViews';
+import { pickViewType } from '../data/asciiViews';
+import { pickFromPool } from './dedupUtils';
 
 function pickRandom(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
@@ -83,10 +84,39 @@ const QUIZ_POOL = [
     outcomes: { good: ['Correct — water.'], bad: ['Wrong — H2O is water.'] },
   },
   {
-    setup: 'Quick Quiz: Which country invented paper (historically)?',
-    options: ['Egypt', 'China', 'Greece'],
+    id: 'quiz_8',
+    setup: 'Quick Quiz: Which planet is closest to the Sun?',
+    options: ['Venus', 'Mercury', 'Mars'],
     correctIndex: 1,
-    outcomes: { good: ['Correct — ancient China.'], bad: ['Wrong — paper originated in China.'] },
+    outcomes: { good: ['Correct — Mercury.'], bad: ['Wrong — Mercury is closest.'] },
+  },
+  {
+    id: 'quiz_9',
+    setup: 'Quick Quiz: How many sides does a hexagon have?',
+    options: ['5', '6', '8'],
+    correctIndex: 1,
+    outcomes: { good: ['Correct — six sides.'], bad: ['Wrong — a hexagon has six sides.'] },
+  },
+  {
+    id: 'quiz_10',
+    setup: 'Quick Quiz: What is the largest ocean on Earth?',
+    options: ['Atlantic', 'Indian', 'Pacific'],
+    correctIndex: 2,
+    outcomes: { good: ['Correct — the Pacific.'], bad: ['Wrong — the Pacific is largest.'] },
+  },
+  {
+    id: 'quiz_11',
+    setup: 'Quick Quiz: Which element has the symbol Fe?',
+    options: ['Fluorine', 'Iron', 'Francium'],
+    correctIndex: 1,
+    outcomes: { good: ['Correct — iron.'], bad: ['Wrong — Fe is iron.'] },
+  },
+  {
+    id: 'quiz_12',
+    setup: 'Quick Quiz: In which season do leaves typically fall in temperate climates?',
+    options: ['Spring', 'Summer', 'Autumn'],
+    correctIndex: 2,
+    outcomes: { good: ['Correct — autumn.'], bad: ['Wrong — leaves fall in autumn.'] },
   },
 ];
 
@@ -545,31 +575,18 @@ function shuffleWithKey(options, keyIndex, keyName) {
   };
 }
 
+function getModeItemFingerprint(modeType, item) {
+  return `${modeType}:${item.id || item.setup.slice(0, 60)}`;
+}
+
 function buildFromPool(pool, modeType, round, extra = {}, playedFingerprints = [], allowRepeats = false, playedAsciiFingerprints = []) {
-  let pickPool = pool;
-  let poolRefreshed = false;
-
-  if (!allowRepeats && playedFingerprints.length) {
-    const unplayed = pool.filter((item) => {
-      const fp = `${modeType}:${item.id || item.setup.slice(0, 40)}`;
-      return !playedFingerprints.includes(fp);
-    });
-    if (unplayed.length) {
-      pickPool = unplayed;
-    } else {
-      pickPool = pool;
-      poolRefreshed = true;
-    }
-  }
-
-  if (!allowRepeats && playedAsciiFingerprints.length) {
-    const freshAscii = pickPool.filter((item) =>
-      hasFreshAsciiView(item.asciiKey || 'default', modeType, playedAsciiFingerprints)
-    );
-    if (freshAscii.length) pickPool = freshAscii;
-  }
-
-  const item = pickRandom(pickPool);
+  const item = pickFromPool(
+    pool,
+    (entry) => getModeItemFingerprint(modeType, entry),
+    playedFingerprints,
+    allowRepeats,
+    pickRandom
+  );
   let options = item.options;
   let indices = {};
 
@@ -609,17 +626,16 @@ function buildFromPool(pool, modeType, round, extra = {}, playedFingerprints = [
     viewType: item.viewType || pickViewType(modeType, {
       asciiKey: item.asciiKey || 'default',
       playedAsciiFingerprints,
-      allowRepeats: allowRepeats || poolRefreshed,
+      allowRepeats,
     }),
     setup: item.setup,
     options,
     playedAsciiFingerprints,
-    allowRepeats: allowRepeats || poolRefreshed,
+    allowRepeats,
     ...item,
     ...indices,
-    fingerprint: `${modeType}:${item.id || item.setup.slice(0, 40)}`,
+    fingerprint: getModeItemFingerprint(modeType, item),
   });
-  if (poolRefreshed) scenario.poolRefreshed = true;
   return scenario;
 }
 
@@ -644,35 +660,17 @@ export function generateModeScenario(modeType, round = 0, options = {}) {
 
 function buildLetThemInFromPool(round, playedFingerprints, allowRepeats, playedAsciiFingerprints = []) {
   const pool = LET_THEM_IN_POOL;
-  let poolRefreshed = false;
-  let pickPool = pool;
-
-  if (!allowRepeats && playedFingerprints.length) {
-    const unplayed = pool.filter(
-      (t) => !playedFingerprints.includes(`let_them_in:${t.id}`)
-    );
-    if (unplayed.length) {
-      pickPool = unplayed;
-    } else {
-      pickPool = pool;
-      poolRefreshed = true;
-    }
-  }
-
-  if (!allowRepeats && playedAsciiFingerprints.length) {
-    const freshAscii = pickPool.filter((t) =>
-      hasFreshAsciiView('stranger_knock', 'let_them_in', playedAsciiFingerprints, t.portraitKey)
-    );
-    if (freshAscii.length) pickPool = freshAscii;
-  }
-
-  const template = pickRandom(pickPool);
-  const scenario = buildLetThemInScenario(template, round, {
+  const template = pickFromPool(
+    pool,
+    (t) => `let_them_in:${t.id}`,
+    playedFingerprints,
+    allowRepeats,
+    pickRandom
+  );
+  return buildLetThemInScenario(template, round, {
     playedAsciiFingerprints,
-    allowRepeats: allowRepeats || poolRefreshed,
+    allowRepeats,
   });
-  if (poolRefreshed) scenario.poolRefreshed = true;
-  return scenario;
 }
 
 export function getModeScenarioOptions(scenario) {
