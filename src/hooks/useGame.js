@@ -14,10 +14,8 @@ import {
 } from '../services/modeScenarios';
 import { getScenarioAsciiFingerprint } from '../data/asciiViews';
 import { saveHighScore, GAME_MODES } from '../data/gameModes';
-import { useAuth } from '../context/AuthContext';
 
 export function useGame() {
-  const { user, saveRunToCloud } = useAuth();
   const [phase, setPhase] = useState('menu');
   const [gameMode, setGameMode] = useState('survival');
   const [scenario, setScenario] = useState(null);
@@ -138,22 +136,11 @@ export function useGame() {
     }
   }, [useAi, apiKey, allowRepeats, registerScenario, isSpecialMode]);
 
-  const persistRun = useCallback(async (finalScore, finalRound, finalCombo, won, finalStrikes, stats) => {
+  const finishGame = useCallback((finalScore, finalRound, finalCombo) => {
+    clearTimer();
     const isRecord = saveHighScore(gameMode, finalScore, { rounds: finalRound + 1, combo: finalCombo });
     setNewRecord(isRecord);
-
-    await saveRunToCloud({
-      modeId: gameMode,
-      score: finalScore,
-      rounds: finalRound + 1,
-      combo: finalCombo,
-      strikes: finalStrikes,
-      maxStrikes,
-      won,
-      runStats: stats,
-      scenariosCompleted: scenariosThisRunRef.current,
-    });
-  }, [user, gameMode, maxStrikes, saveRunToCloud]);
+  }, [gameMode, clearTimer]);
 
   const startGame = useCallback(async (mode = 'survival') => {
     setGameMode(mode);
@@ -180,12 +167,7 @@ export function useGame() {
     startRoundTimer();
   }, [loadScenario, startRoundTimer]);
 
-  const finishGame = useCallback((finalScore, finalRound, finalCombo, won, finalStrikes, stats) => {
-    clearTimer();
-    persistRun(finalScore, finalRound, finalCombo, won, finalStrikes, stats);
-  }, [clearTimer, persistRun]);
-
-  const failRun = useCallback((optionText, result, ctxScenario, cause, finalScore, finalCombo, finalStrikes, stats) => {
+  const failRun = useCallback((optionText, result, ctxScenario, cause, finalScore, finalCombo) => {
     setDeathInfo({
       cause,
       choice: optionText,
@@ -196,7 +178,7 @@ export function useGame() {
       category: ctxScenario?.category,
       tone: ctxScenario?.tone,
     });
-    finishGame(finalScore, round, finalCombo, false, finalStrikes, stats);
+    finishGame(finalScore, round, finalCombo);
     setTimeout(() => setPhase('gameover'), 0);
   }, [round, finishGame]);
 
@@ -237,14 +219,14 @@ export function useGame() {
         : outOfStrikes
           ? 'strikes_out'
           : 'fatal_choice';
-      failRun(optionText, result, ctxScenario, cause, newScore, newCombo, newStrikes, newRunStats);
+      failRun(optionText, result, ctxScenario, cause, newScore, newCombo);
       return false;
     }
 
     const config = GAME_MODES[gameMode];
     const nextRound = round + 1;
     if (!config.endless && config.maxRounds && nextRound >= config.maxRounds && !keepScenario) {
-      finishGame(newScore, round, newCombo, true, newStrikes, newRunStats);
+      finishGame(newScore, round, newCombo);
       setTimeout(() => setPhase('victory'), 0);
       return false;
     }

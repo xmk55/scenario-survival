@@ -6,15 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview",
-    "setup:db": "node scripts/apply-schema.mjs",
-    "setup:google": "node scripts/setup-google-oauth.mjs"
+    "preview": "vite preview"
   },
   "dependencies": {
-    "@react-oauth/google": "^0.13.5",
-    "@supabase/supabase-js": "^2.108.2",
-    "google-auth-library": "^10.9.0",
-    "pg": "^8.22.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useSound } from '../context/SoundContext';
 import { STANDARD_MODES, SPECIAL_MODES, getHighScores } from '../data/gameModes';
 
-export default function TitleScreen({ onStart, onSettings, onSignIn, user }) {
+export default function TitleScreen({ onStart, onSettings }) {
   const { play, unlock } = useSound();
   const [selectedMode, setSelectedMode] = useState('survival');
   const highScores = getHighScores();
@@ -97,12 +97,6 @@ export default function TitleScreen({ onStart, onSettings, onSignIn, user }) {
           </button>
           <button className="btn btn-secondary" onClick={handleSettings}>
             Settings & Themes
-          </button>
-          <button type="button" className="btn btn-secondary btn-account" onClick={() => { unlock(); play('open'); onSignIn?.(); }}>
-            {user?.photoURL ? (
-              <img src={user.photoURL} alt="" className="title-user-avatar" referrerPolicy="no-referrer" />
-            ) : null}
-            {user ? 'Account & Achievements' : 'Sign In / Save Scores'}
           </button>
         </div>
 
