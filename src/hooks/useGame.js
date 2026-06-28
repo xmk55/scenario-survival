@@ -13,12 +13,11 @@ import {
   getModeScenarioOptions,
 } from '../services/modeScenarios';
 import { getScenarioAsciiFingerprint } from '../data/asciiViews';
-import { GAME_MODES, saveHighScore } from '../data/gameModes';
+import { saveHighScore, GAME_MODES } from '../data/gameModes';
 import { useAuth } from '../context/AuthContext';
-import { saveRunProgress } from '../services/userProgressService';
 
 export function useGame() {
-  const { user, applyRunResult } = useAuth();
+  const { user, saveRunToCloud } = useAuth();
   const [phase, setPhase] = useState('menu');
   const [gameMode, setGameMode] = useState('survival');
   const [scenario, setScenario] = useState(null);
@@ -143,25 +142,18 @@ export function useGame() {
     const isRecord = saveHighScore(gameMode, finalScore, { rounds: finalRound + 1, combo: finalCombo });
     setNewRecord(isRecord);
 
-    if (!user) return;
-
-    try {
-      const result = await saveRunProgress(user.uid, {
-        modeId: gameMode,
-        score: finalScore,
-        rounds: finalRound + 1,
-        combo: finalCombo,
-        strikes: finalStrikes,
-        maxStrikes,
-        won,
-        runStats: stats,
-        scenariosCompleted: scenariosThisRunRef.current,
-      });
-      applyRunResult(result);
-    } catch {
-      // Local scores still saved
-    }
-  }, [user, gameMode, maxStrikes, applyRunResult]);
+    await saveRunToCloud({
+      modeId: gameMode,
+      score: finalScore,
+      rounds: finalRound + 1,
+      combo: finalCombo,
+      strikes: finalStrikes,
+      maxStrikes,
+      won,
+      runStats: stats,
+      scenariosCompleted: scenariosThisRunRef.current,
+    });
+  }, [user, gameMode, maxStrikes, saveRunToCloud]);
 
   const startGame = useCallback(async (mode = 'survival') => {
     setGameMode(mode);

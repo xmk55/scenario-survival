@@ -1,5 +1,6 @@
 import { useSound } from '../context/SoundContext';
 import { useAuth } from '../context/AuthContext';
+import { GoogleLogin } from '@react-oauth/google';
 import { getHighScores } from '../data/gameModes';
 
 export default function SignInScreen({ onContinue, onBack }) {
@@ -8,8 +9,9 @@ export default function SignInScreen({ onContinue, onBack }) {
     user,
     loading,
     authError,
-    isFirebaseConfigured,
-    signInWithGoogle,
+    isConfigured,
+    googleClientId,
+    signInWithGoogleToken,
     signOut,
     unlockedAchievements,
     progress,
@@ -18,12 +20,6 @@ export default function SignInScreen({ onContinue, onBack }) {
   const localScores = getHighScores();
   const totalLocalScore = Object.values(localScores).reduce((sum, s) => sum + (s.score || 0), 0);
   const unlockedCount = unlockedAchievements.filter((a) => a.unlocked).length;
-
-  const handleGoogleSignIn = async () => {
-    unlock();
-    play('click');
-    await signInWithGoogle();
-  };
 
   const handleContinue = () => {
     play('continue');
@@ -37,14 +33,14 @@ export default function SignInScreen({ onContinue, onBack }) {
 
   const handleSignOut = async () => {
     play('click');
-    await signOut();
+    signOut();
   };
 
-  if (loading) {
+  if (loading && !user) {
     return (
       <div className="signin-screen">
         <div className="signin-card">
-          <p className="signin-loading">Checking account...</p>
+          <p className="signin-loading">Connecting your account...</p>
         </div>
       </div>
     );
@@ -56,7 +52,7 @@ export default function SignInScreen({ onContinue, onBack }) {
         <pre className="signin-ascii">{`
   ╔══════════════════════════════════════╗
   ║         SCENARIO SURVIVAL            ║
-  ║            CLOUD SAVE                ║
+  ║         CLOUD SAVE & ACHIEVEMENTS    ║
   ╚══════════════════════════════════════╝`}</pre>
 
         {user ? (
@@ -119,28 +115,39 @@ export default function SignInScreen({ onContinue, onBack }) {
           </>
         ) : (
           <>
-            <h2 className="signin-title">Save scores & unlock achievements</h2>
+            <h2 className="signin-title">Sign in with Google</h2>
             <p className="signin-subtitle">
-              Sign in with Google to sync high scores across devices and track achievements.
+              Sync scores across devices and unlock achievements as you play.
             </p>
 
-            {!isFirebaseConfigured && (
+            {!isConfigured && (
               <div className="signin-notice">
-                Cloud save is not configured yet. You can still play as a guest — scores stay on this device.
+                Cloud save is finishing setup. You can still play as a guest — scores stay on this device.
               </div>
             )}
 
             {authError && <div className="error-banner">{authError}</div>}
 
             <div className="signin-actions">
-              {isFirebaseConfigured && (
-                <button type="button" className="btn btn-google" onClick={handleGoogleSignIn}>
-                  <span className="google-icon">G</span>
-                  Sign in with Google
-                </button>
+              {isConfigured && googleClientId && (
+                <div className="google-login-wrap">
+                  <GoogleLogin
+                    onSuccess={(res) => {
+                      unlock();
+                      play('click');
+                      signInWithGoogleToken(res.credential);
+                    }}
+                    onError={() => {}}
+                    theme="filled_black"
+                    size="large"
+                    text="signin_with"
+                    shape="rectangular"
+                    width="100%"
+                  />
+                </div>
               )}
               <button type="button" className="btn btn-primary" onClick={handleContinue}>
-                {isFirebaseConfigured ? 'Play as Guest' : 'Continue as Guest'}
+                Play as Guest
               </button>
               {onBack && (
                 <button type="button" className="btn btn-ghost" onClick={handleBack}>
@@ -150,7 +157,7 @@ export default function SignInScreen({ onContinue, onBack }) {
             </div>
 
             <p className="signin-hint">
-              Guest mode keeps scores locally. Sign in anytime to back them up.
+              Guest mode keeps scores locally. Sign in anytime to back them up to the cloud.
             </p>
           </>
         )}

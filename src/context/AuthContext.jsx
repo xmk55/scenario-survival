@@ -1,101 +1,124 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
-import {
-  onAuthStateChanged,
-  signInWithPopup,
-  signOut as firebaseSignOut,
-} from 'firebase/auth';
-import { auth, googleProvider, isFirebaseConfigured } from '../lib/firebase';
-import { loadUserProgress, syncUserProfile } from '../services/userProgressService';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { GoogleOAuthProvider } from '@react-oauth/google';
+import { isCloudConfigured } from '../lib/supabase';
+import { saveHighScore } from '../data/gameModes';
 import { ACHIEVEMENTS } from '../data/achievements';
 
 const AuthContext = createContext(null);
 
-export function AuthProvider({ children }) {
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
+const API_BASE = import.meta.env.VITE_API_BASE || '';
+
+async function callUserApi(payload) {
+  const res = await fetch(`${API_BASE}/api/user`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Request failed');
+  return data;
+}
+
+function AuthInner({ children }) {
   const [user, setUser] = useState(null);
   const [progress, setProgress] = useState(null);
-  const [loading, setLoading] = useState(isFirebaseConfigured);
+  const [loading, setLoading] = useState(false);
   const [authError, setAuthError] = useState(null);
   const [newAchievements, setNewAchievements] = useState([]);
+  const [credential, setCredential] = useState(null);
 
-  useEffect(() => {
-    if (!isFirebaseConfigured) {
-      setLoading(false);
-      return undefined;
-    }
+  const isConfigured = isCloudConfigured && Boolean(GOOGLE_CLIENT_ID);
 
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      setUser(firebaseUser);
-      setAuthError(null);
-      if (firebaseUser) {
-        try {
-          await syncUserProfile(firebaseUser.uid, {
-            displayName: firebaseUser.displayName,
-            photoURL: firebaseUser.photoURL,
-            email: firebaseUser.email,
-          });
-          const data = await loadUserProgress(firebaseUser.uid);
-          setProgress(data);
-        } catch (err) {
-          setAuthError(err.message || 'Failed to load profile');
-        }
-      } else {
-        setProgress(null);
-      }
-      setLoading(false);
+  const applyProgressToLocal = useCallback((cloudProgress) => {
+    if (!cloudProgress?.scores) return;
+    Object.entries(cloudProgress.scores).forEach(([modeId, data]) => {
+      saveHighScore(modeId, data.score || 0, { rounds: data.rounds, combo: data.combo });
     });
-
-    return unsubscribe;
   }, []);
 
-  const signInWithGoogle = useCallback(async () => {
-    if (!isFirebaseConfigured) {
-      setAuthError('Cloud save is not configured. Add Firebase keys to enable sign-in.');
-      return null;
-    }
+  const completeSignIn = useCallback((data, token) => {
+    setUser({
+      id: data.user.id,
+      googleId: data.user.googleId,
+      email: data.user.email,
+      displayName: data.user.displayName,
+      photoURL: data.user.photoURL,
+    });
+    setCredential(token);
+    setProgress(data.progress);
+    applyProgressToLocal(data.progress);
+    localStorage.setItem('scenario-survival-auth', JSON.stringify({
+      credential: token,
+      user: data.user,
+    }));
+  }, [applyProgressToLocal]);
+
+  const signInWithGoogleToken = useCallback(async (idToken) => {
+    if (!idToken) return null;
+    setLoading(true);
     setAuthError(null);
     try {
-      const result = await signInWithPopup(auth, googleProvider);
-      return result.user;
+      const data = await callUserApi({ action: 'signin', credential: idToken });
+      completeSignIn(data, idToken);
+      return data.user;
     } catch (err) {
-      if (err.code !== 'auth/popup-closed-by-user') {
-        setAuthError(err.message || 'Sign-in failed');
-      }
+      setAuthError(err.message || 'Sign-in failed');
       return null;
+    } finally {
+      setLoading(false);
     }
-  }, []);
+  }, [completeSignIn]);
 
-  const signOut = useCallback(async () => {
-    if (!isFirebaseConfigured) return;
-    await firebaseSignOut(auth);
+  useEffect(() => {
+    const raw = localStorage.getItem('scenario-survival-auth');
+    if (!raw || !GOOGLE_CLIENT_ID) return;
+    try {
+      const saved = JSON.parse(raw);
+      if (saved.credential) {
+        signInWithGoogleToken(saved.credential).catch(() => {
+          localStorage.removeItem('scenario-survival-auth');
+        });
+      }
+    } catch {
+      localStorage.removeItem('scenario-survival-auth');
+    }
+  }, [signInWithGoogleToken]);
+
+  const signOut = useCallback(() => {
+    setUser(null);
     setProgress(null);
+    setCredential(null);
     setNewAchievements([]);
+    localStorage.removeItem('scenario-survival-auth');
   }, []);
-
-  const refreshProgress = useCallback(async () => {
-    if (!user) return;
-    const data = await loadUserProgress(user.uid);
-    setProgress(data);
-  }, [user]);
 
   const applyRunResult = useCallback((result) => {
     if (result?.progress) {
       setProgress(result.progress);
+      applyProgressToLocal(result.progress);
     }
     if (result?.newlyUnlocked?.length) {
       setNewAchievements((prev) => [...new Set([...prev, ...result.newlyUnlocked])]);
     }
-  }, []);
+  }, [applyProgressToLocal]);
 
-  const clearNewAchievements = useCallback(() => {
-    setNewAchievements([]);
-  }, []);
+  const saveRunToCloud = useCallback(async (runPayload) => {
+    if (!user || !credential) {
+      saveHighScore(runPayload.modeId, runPayload.score, { rounds: runPayload.rounds, combo: runPayload.combo });
+      return { newlyUnlocked: [], progress: null };
+    }
+    try {
+      const data = await callUserApi({ action: 'save_run', credential, ...runPayload });
+      applyRunResult(data);
+      return data;
+    } catch {
+      saveHighScore(runPayload.modeId, runPayload.score, { rounds: runPayload.rounds, combo: runPayload.combo });
+      return { newlyUnlocked: [], progress: null };
+    }
+  }, [user, credential, applyRunResult]);
+
+  const clearNewAchievements = useCallback(() => setNewAchievements([]), []);
 
   const unlockedAchievements = useMemo(() => {
     const ids = new Set(progress?.achievements || []);
@@ -107,32 +130,33 @@ export function AuthProvider({ children }) {
     progress,
     loading,
     authError,
-    isFirebaseConfigured,
-    signInWithGoogle,
+    isConfigured,
+    isFirebaseConfigured: isConfigured,
+    googleClientId: GOOGLE_CLIENT_ID,
+    signInWithGoogleToken,
     signOut,
-    refreshProgress,
     applyRunResult,
+    saveRunToCloud,
     unlockedAchievements,
     newAchievements,
     clearNewAchievements,
   }), [
-    user,
-    progress,
-    loading,
-    authError,
-    signInWithGoogle,
-    signOut,
-    refreshProgress,
-    applyRunResult,
-    unlockedAchievements,
-    newAchievements,
-    clearNewAchievements,
+    user, progress, loading, authError, isConfigured,
+    signInWithGoogleToken, signOut, applyRunResult, saveRunToCloud,
+    unlockedAchievements, newAchievements, clearNewAchievements,
   ]);
 
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export function AuthProvider({ children }) {
+  if (!GOOGLE_CLIENT_ID) {
+    return <AuthInner>{children}</AuthInner>;
+  }
   return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      <AuthInner>{children}</AuthInner>
+    </GoogleOAuthProvider>
   );
 }
 

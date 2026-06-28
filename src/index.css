@@ -2029,13 +2029,13 @@ body {
   line-height: 1.4;
 }
 
-.achievement-toast-close {
-  background: none;
-  border: none;
-  color: var(--color-textMuted);
-  font-size: 1.25rem;
-  cursor: pointer;
-  padding: 0;
-  margin-left: auto;
-  line-height: 1;
+.google-login-wrap {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  min-height: 44px;
+}
+
+.google-login-wrap > div {
+  width: 100% !important;
 }
