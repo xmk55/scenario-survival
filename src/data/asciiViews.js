@@ -107,53 +107,74 @@ export function sanitizeAsciiArt(art) {
   return result;
 }
 
-/** Default to first-person POV — scene/wide shots are rare */
-export function pickViewType(modeType) {
-  if (modeType === 'let_them_in') return 'portrait';
-  if (modeType === 'who_to_save') return 'pov';
-  if (modeType === 'witness') return Math.random() < 0.6 ? 'detail' : 'pov';
-  const roll = Math.random();
-  if (roll < 0.62) return 'pov';
-  if (roll < 0.78) return 'detail';
-  if (roll < 0.88) return 'hands';
-  if (roll < 0.94) return 'over_shoulder';
-  if (roll < 0.97) return 'peephole';
-  return 'scene';
+const VIEW_CANDIDATES = {
+  let_them_in: ['portrait'],
+  who_to_save: ['pov'],
+  witness: ['detail', 'pov', 'over_shoulder'],
+  standard: ['pov', 'detail', 'hands', 'over_shoulder', 'peephole', 'scene'],
+};
+
+export function getAsciiFingerprint(asciiKey, viewType = 'pov', portraitKey) {
+  const key = asciiKey || 'default';
+  if (viewType === 'portrait') {
+    return `ascii:${portraitKey || key}:portrait`;
+  }
+  return `ascii:${key}:${viewType}`;
 }
 
-export function buildViewSequence(modeType, initialView, asciiKey) {
-  if (modeType === 'let_them_in') {
-    return ['portrait', 'peephole', 'pov', 'detail'];
+export function getScenarioAsciiFingerprint(scenario) {
+  if (!scenario) return '';
+  return getAsciiFingerprint(
+    scenario.asciiKey,
+    scenario.viewType || 'pov',
+    scenario.portraitKey
+  );
+}
+
+function pickRandom(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+/** One view per scenario — pick a type that has not been shown this run when possible */
+export function pickViewType(modeType = 'standard', options = {}) {
+  const {
+    asciiKey = 'default',
+    portraitKey,
+    playedAsciiFingerprints = [],
+    allowRepeats = false,
+  } = options;
+
+  const playedSet = new Set(playedAsciiFingerprints);
+  let candidates = VIEW_CANDIDATES[modeType] || VIEW_CANDIDATES.standard;
+
+  if (modeType === 'witness') {
+    candidates = Math.random() < 0.6
+      ? ['detail', 'pov', 'over_shoulder']
+      : ['pov', 'detail', 'over_shoulder'];
   }
 
-  const sequence = [];
-  const add = (view) => {
-    if (sequence.length === 0 || sequence[sequence.length - 1] !== view) {
-      sequence.push(view);
-    }
-  };
+  const fresh = candidates.filter(
+    (view) => !playedSet.has(getAsciiFingerprint(asciiKey, view, portraitKey))
+  );
 
-  add(initialView === 'scene' ? 'pov' : initialView);
-  add('pov');
-  add('detail');
-  add('hands');
-  add('over_shoulder');
-  add('pov');
-
-  if (asciiKey === 'stranger_knock') {
-    add('peephole');
+  if (!allowRepeats && fresh.length) {
+    return pickRandom(fresh);
   }
 
-  return sequence.slice(0, 5);
+  return pickRandom(candidates);
 }
 
-export function getViewAtBeat(sequence, beat) {
-  if (!sequence?.length) return 'pov';
-  return sequence[beat % sequence.length];
+export function getViewCandidates(modeType = 'standard') {
+  return VIEW_CANDIDATES[modeType] || VIEW_CANDIDATES.standard;
 }
 
-export function getPhaseViewBeat() {
-  return 0;
+export function hasFreshAsciiView(asciiKey, modeType, playedAsciiFingerprints, portraitKey) {
+  if (!playedAsciiFingerprints?.length) return true;
+  const playedSet = new Set(playedAsciiFingerprints);
+  const candidates = getViewCandidates(modeType);
+  return candidates.some(
+    (view) => !playedSet.has(getAsciiFingerprint(asciiKey, view, portraitKey))
+  );
 }
 
 export function getAsciiView(key, viewType = 'pov', sceneArt, sceneKey) {

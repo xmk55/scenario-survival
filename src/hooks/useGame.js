@@ -12,6 +12,7 @@ import {
   applyLetThemInChoice,
   getModeScenarioOptions,
 } from '../services/modeScenarios';
+import { getScenarioAsciiFingerprint } from '../data/asciiViews';
 import { GAME_MODES, saveHighScore } from '../data/gameModes';
 
 export function useGame() {
@@ -39,6 +40,7 @@ export function useGame() {
     () => localStorage.getItem('scenario-survival-allow-repeats') === 'true'
   );
   const [playedFingerprints, setPlayedFingerprints] = useState([]);
+  const [playedAsciiFingerprints, setPlayedAsciiFingerprints] = useState([]);
   const timerRef = useRef(null);
   const timedOutRef = useRef(false);
 
@@ -85,17 +87,22 @@ export function useGame() {
   const registerScenario = useCallback((next) => {
     setScenario(next);
     const fingerprint = getScenarioFingerprint(next);
+    const asciiFingerprint = getScenarioAsciiFingerprint(next);
     if (next.poolRefreshed) {
       setPlayedFingerprints(fingerprint ? [fingerprint] : []);
+      setPlayedAsciiFingerprints(asciiFingerprint ? [asciiFingerprint] : []);
     } else {
       setPlayedFingerprints((prev) => (
         fingerprint && !prev.includes(fingerprint) ? [...prev, fingerprint] : prev
+      ));
+      setPlayedAsciiFingerprints((prev) => (
+        asciiFingerprint && !prev.includes(asciiFingerprint) ? [...prev, asciiFingerprint] : prev
       ));
     }
     setUsedCategories((prev) => [...prev, next.category]);
   }, []);
 
-  const loadScenario = useCallback(async (currentRound, categories, history, mode, played) => {
+  const loadScenario = useCallback(async (currentRound, categories, history, mode, played, playedAscii = []) => {
     setLoading(true);
     setError(null);
     setStayOnScenario(false);
@@ -103,6 +110,7 @@ export function useGame() {
     const genOptions = {
       mode,
       playedFingerprints: played,
+      playedAsciiFingerprints: playedAscii,
       allowRepeats,
     };
     try {
@@ -144,8 +152,9 @@ export function useGame() {
     setLastScenario(null);
     setStayOnScenario(false);
     setPlayedFingerprints([]);
+    setPlayedAsciiFingerprints([]);
     timedOutRef.current = false;
-    await loadScenario(0, [], [], mode, []);
+    await loadScenario(0, [], [], mode, [], []);
     startRoundTimer();
   }, [loadScenario, startRoundTimer]);
 
@@ -311,9 +320,9 @@ export function useGame() {
       startRoundTimer();
       return;
     }
-    await loadScenario(round, usedCategories, choiceHistory, gameMode, playedFingerprints);
+    await loadScenario(round, usedCategories, choiceHistory, gameMode, playedFingerprints, playedAsciiFingerprints);
     startRoundTimer();
-  }, [phase, round, usedCategories, choiceHistory, gameMode, playedFingerprints, loadScenario, startRoundTimer, stayOnScenario]);
+  }, [phase, round, usedCategories, choiceHistory, gameMode, playedFingerprints, playedAsciiFingerprints, loadScenario, startRoundTimer, stayOnScenario]);
 
   const goToMenu = useCallback(() => {
     clearTimer();

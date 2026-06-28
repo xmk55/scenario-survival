@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback, useState } from 'react';
+import { useRef, useEffect, useCallback } from 'react';
 import { getAsciiArt } from '../data/asciiArt';
 import { getSceneName } from '../data/gameMeta';
 import { getViewLabel, isImmersiveView } from '../data/asciiViews';
@@ -10,15 +10,22 @@ const LOADING_ART = `╔══════════════════�
 ║   ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  ║
 ╚══════════════════════════════════════════════════════════════════╝`;
 
-const MIN_FONT = 13;
-const MAX_FONT = 24;
-const PADDING = 28;
+function getFitLimits() {
+  const narrow = typeof window !== 'undefined' && window.innerWidth <= 600;
+  return {
+    minFont: narrow ? 8 : 11,
+    maxFont: narrow ? 16 : 22,
+    padding: narrow ? 16 : 28,
+    maxScale: narrow ? 0.92 : 0.97,
+  };
+}
 
 function findOptimalFit(pre, frameW, frameH, dpr) {
-  let bestFont = MIN_FONT;
+  const { minFont, maxFont, maxScale } = getFitLimits();
+  let bestFont = minFont;
   let bestScale = 0;
 
-  for (let fs = MIN_FONT; fs <= MAX_FONT; fs += 1) {
+  for (let fs = minFont; fs <= maxFont; fs += 1) {
     const renderSize = fs * dpr;
     pre.style.fontSize = `${renderSize}px`;
     pre.style.transform = 'none';
@@ -28,7 +35,7 @@ function findOptimalFit(pre, frameW, frameH, dpr) {
     const artH = pre.scrollHeight;
     if (!artW || !artH) continue;
 
-    const scale = Math.min(frameW / artW, frameH / artH) * 0.97;
+    const scale = Math.min(frameW / artW, frameH / artH) * maxScale;
     if (scale > bestScale) {
       bestScale = scale;
       bestFont = fs;
@@ -41,16 +48,15 @@ function findOptimalFit(pre, frameW, frameH, dpr) {
 
   const artW = pre.scrollWidth;
   const artH = pre.scrollHeight;
-  const scale = Math.min(frameW / artW, frameH / artH) * 0.97;
+  const scale = Math.min(frameW / artW, frameH / artH) * maxScale;
 
-  return { renderSize, scale };
+  return { renderSize, scale: Math.min(scale, 1) };
 }
 
 export default function AsciiDisplay({
   asciiKey,
   portraitKey,
   viewType = 'pov',
-  viewBeat = 0,
   loading,
   category,
   isCreepy,
@@ -59,7 +65,6 @@ export default function AsciiDisplay({
 }) {
   const frameRef = useRef(null);
   const artRef = useRef(null);
-  const [fadeKey, setFadeKey] = useState(0);
   const art = getAsciiArt(asciiKey, viewType, portraitKey);
   const sceneName = getSceneName(asciiKey);
   const viewLabel = getViewLabel(viewType);
@@ -67,16 +72,16 @@ export default function AsciiDisplay({
   const creepyClass = isCreepy ? 'ascii-creepy' : '';
   const viewClass = `ascii-view-${viewType}`;
   const immersiveClass = isImmersiveView(viewType) ? 'ascii-immersive' : '';
-  const showCut = viewBeat > 0;
 
   const fitArt = useCallback(() => {
     const frame = frameRef.current;
     const pre = artRef.current;
     if (!frame || !pre) return;
 
-    const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
-    const frameW = frame.clientWidth - PADDING;
-    const frameH = frame.clientHeight - PADDING;
+    const { padding } = getFitLimits();
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const frameW = frame.clientWidth - padding;
+    const frameH = frame.clientHeight - padding;
 
     const { renderSize, scale } = findOptimalFit(pre, frameW, frameH, dpr);
 
@@ -85,20 +90,34 @@ export default function AsciiDisplay({
   }, []);
 
   useEffect(() => {
-    setFadeKey((k) => k + 1);
-  }, [asciiKey, viewType]);
+    if (loading) return undefined;
 
-  useEffect(() => {
-    fitArt();
+    let raf1;
+    let raf2;
+    raf1 = requestAnimationFrame(() => {
+      fitArt();
+      raf2 = requestAnimationFrame(fitArt);
+    });
+
     const frame = frameRef.current;
-    if (!frame) return undefined;
+    if (!frame) return () => {
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
+    };
 
-    const observer = new ResizeObserver(fitArt);
+    const observer = new ResizeObserver(() => {
+      requestAnimationFrame(fitArt);
+    });
     observer.observe(frame);
     window.addEventListener('resize', fitArt);
+    window.addEventListener('orientationchange', fitArt);
+
     return () => {
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
       observer.disconnect();
       window.removeEventListener('resize', fitArt);
+      window.removeEventListener('orientationchange', fitArt);
     };
   }, [asciiKey, viewType, loading, art, fitArt]);
 
@@ -108,7 +127,6 @@ export default function AsciiDisplay({
         <div className="ascii-scene-label">
           <span className={`ascii-scene-dot ${viewClass}`} />
           <span className={`ascii-view-tag ${viewClass}`}>{viewLabel}</span>
-          {showCut && <span className="ascii-cut-tag">angle {viewBeat + 1}</span>}
           <span className="ascii-scene-sep">/</span>
           <span className="ascii-scene-name">{sceneName}</span>
         </div>
@@ -121,7 +139,7 @@ export default function AsciiDisplay({
         <div className="ascii-scanlines" aria-hidden="true" />
         <div className="ascii-art-wrapper">
           <pre
-            key={`${asciiKey}-${viewType}-${fadeKey}`}
+            key={`${asciiKey}-${viewType}`}
             ref={artRef}
             className={`ascii-art ${loading ? 'ascii-loading' : ''} ascii-art-hires ${viewClass}`}
           >

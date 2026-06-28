@@ -1,4 +1,4 @@
-import { pickViewType, buildViewSequence } from '../data/asciiViews';
+import { pickViewType, hasFreshAsciiView } from '../data/asciiViews';
 
 function pickRandom(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
@@ -14,17 +14,27 @@ function shuffle(arr) {
 }
 
 function baseScenario(data) {
-  const viewType = data.viewType || 'scene';
-  const modeType = data.modeType;
-  const asciiKey = data.portraitKey || data.asciiKey || 'default';
+  const {
+    playedAsciiFingerprints: _playedAscii,
+    allowRepeats: _allowRepeats,
+    ...scenarioData
+  } = data;
+
+  const viewType = scenarioData.viewType || pickViewType(scenarioData.modeType || 'standard', {
+    asciiKey: scenarioData.asciiKey || scenarioData.portraitKey || 'default',
+    portraitKey: scenarioData.portraitKey,
+    playedAsciiFingerprints: _playedAscii,
+    allowRepeats: _allowRepeats,
+  });
+
   return {
     id: `mode-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     isAi: false,
     isModeScenario: true,
     viewType,
-    viewSequence: data.viewSequence || buildViewSequence(modeType, viewType, asciiKey),
-    fingerprint: data.fingerprint || `mode:${data.modeType}:${data.setup?.slice(0, 60)}`,
-    ...data,
+    fingerprint: scenarioData.fingerprint || `mode:${scenarioData.modeType}:${scenarioData.setup?.slice(0, 60)}`,
+    ...scenarioData,
+    viewType: scenarioData.viewType || viewType,
   };
 }
 
@@ -492,7 +502,7 @@ export function resolveModeChoice(scenario, optionIndex, interviewPhase = 'verdi
   }
 }
 
-function buildLetThemInScenario(template, round) {
+function buildLetThemInScenario(template, round, genOptions = {}) {
   const isDoppel = template.isDoppelganger;
   return baseScenario({
     modeType: 'let_them_in',
@@ -502,7 +512,8 @@ function buildLetThemInScenario(template, round) {
     asciiKey: 'stranger_knock',
     portraitKey: template.portraitKey,
     viewType: 'portrait',
-    viewSequence: ['portrait', 'peephole', 'portrait'],
+    playedAsciiFingerprints: genOptions.playedAsciiFingerprints,
+    allowRepeats: genOptions.allowRepeats,
     setup: template.setup,
     visitorName: template.visitorName,
     isDoppelganger: isDoppel,
@@ -534,14 +545,28 @@ function shuffleWithKey(options, keyIndex, keyName) {
   };
 }
 
-function buildFromPool(pool, modeType, round, extra = {}, playedFingerprints = [], allowRepeats = false) {
+function buildFromPool(pool, modeType, round, extra = {}, playedFingerprints = [], allowRepeats = false, playedAsciiFingerprints = []) {
   let pickPool = pool;
+  let poolRefreshed = false;
+
   if (!allowRepeats && playedFingerprints.length) {
     const unplayed = pool.filter((item) => {
       const fp = `${modeType}:${item.id || item.setup.slice(0, 40)}`;
       return !playedFingerprints.includes(fp);
     });
-    if (unplayed.length) pickPool = unplayed;
+    if (unplayed.length) {
+      pickPool = unplayed;
+    } else {
+      pickPool = pool;
+      poolRefreshed = true;
+    }
+  }
+
+  if (!allowRepeats && playedAsciiFingerprints.length) {
+    const freshAscii = pickPool.filter((item) =>
+      hasFreshAsciiView(item.asciiKey || 'default', modeType, playedAsciiFingerprints)
+    );
+    if (freshAscii.length) pickPool = freshAscii;
   }
 
   const item = pickRandom(pickPool);
@@ -576,32 +601,40 @@ function buildFromPool(pool, modeType, round, extra = {}, playedFingerprints = [
     options = shuffle(item.options);
   }
 
-  return baseScenario({
+  const scenario = baseScenario({
     modeType,
     category: extra.category || 'mystery',
     tone: extra.tone || 'intense',
     asciiKey: item.asciiKey || 'default',
-    viewType: item.viewType || pickViewType(modeType),
+    viewType: item.viewType || pickViewType(modeType, {
+      asciiKey: item.asciiKey || 'default',
+      playedAsciiFingerprints,
+      allowRepeats: allowRepeats || poolRefreshed,
+    }),
     setup: item.setup,
     options,
+    playedAsciiFingerprints,
+    allowRepeats: allowRepeats || poolRefreshed,
     ...item,
     ...indices,
     fingerprint: `${modeType}:${item.id || item.setup.slice(0, 40)}`,
   });
+  if (poolRefreshed) scenario.poolRefreshed = true;
+  return scenario;
 }
 
 export function generateModeScenario(modeType, round = 0, options = {}) {
-  const { playedFingerprints = [], allowRepeats = false } = options;
+  const { playedFingerprints = [], playedAsciiFingerprints = [], allowRepeats = false } = options;
 
   const builders = {
-    quiz: () => buildFromPool(QUIZ_POOL, 'quiz', round, { category: 'everyday', tone: 'everyday' }, playedFingerprints, allowRepeats),
-    intuition: () => buildFromPool(INTUITION_POOL, 'intuition', round, {}, playedFingerprints, allowRepeats),
-    who_to_save: () => buildFromPool(WHO_TO_SAVE_POOL, 'who_to_save', round, { category: 'survival' }, playedFingerprints, allowRepeats),
-    let_them_in: () => buildLetThemInFromPool(round, playedFingerprints, allowRepeats),
-    lie_detector: () => buildFromPool(LIE_DETECTOR_POOL, 'lie_detector', round, {}, playedFingerprints, allowRepeats),
-    moral: () => buildFromPool(MORAL_POOL, 'moral', round, { category: 'everyday', tone: 'everyday' }, playedFingerprints, allowRepeats),
-    witness: () => buildFromPool(WITNESS_POOL, 'witness', round, {}, playedFingerprints, allowRepeats),
-    trust: () => buildFromPool(TRUST_POOL, 'trust', round, { category: 'social', tone: 'everyday' }, playedFingerprints, allowRepeats),
+    quiz: () => buildFromPool(QUIZ_POOL, 'quiz', round, { category: 'everyday', tone: 'everyday' }, playedFingerprints, allowRepeats, playedAsciiFingerprints),
+    intuition: () => buildFromPool(INTUITION_POOL, 'intuition', round, {}, playedFingerprints, allowRepeats, playedAsciiFingerprints),
+    who_to_save: () => buildFromPool(WHO_TO_SAVE_POOL, 'who_to_save', round, { category: 'survival' }, playedFingerprints, allowRepeats, playedAsciiFingerprints),
+    let_them_in: () => buildLetThemInFromPool(round, playedFingerprints, allowRepeats, playedAsciiFingerprints),
+    lie_detector: () => buildFromPool(LIE_DETECTOR_POOL, 'lie_detector', round, {}, playedFingerprints, allowRepeats, playedAsciiFingerprints),
+    moral: () => buildFromPool(MORAL_POOL, 'moral', round, { category: 'everyday', tone: 'everyday' }, playedFingerprints, allowRepeats, playedAsciiFingerprints),
+    witness: () => buildFromPool(WITNESS_POOL, 'witness', round, {}, playedFingerprints, allowRepeats, playedAsciiFingerprints),
+    trust: () => buildFromPool(TRUST_POOL, 'trust', round, { category: 'social', tone: 'everyday' }, playedFingerprints, allowRepeats, playedAsciiFingerprints),
   };
 
   const build = builders[modeType];
@@ -609,18 +642,37 @@ export function generateModeScenario(modeType, round = 0, options = {}) {
   return build();
 }
 
-function buildLetThemInFromPool(round, playedFingerprints, allowRepeats) {
+function buildLetThemInFromPool(round, playedFingerprints, allowRepeats, playedAsciiFingerprints = []) {
   const pool = LET_THEM_IN_POOL;
+  let poolRefreshed = false;
+  let pickPool = pool;
+
   if (!allowRepeats && playedFingerprints.length) {
     const unplayed = pool.filter(
       (t) => !playedFingerprints.includes(`let_them_in:${t.id}`)
     );
-    if (unplayed.length) return buildLetThemInScenario(pickRandom(unplayed), round);
-    const scenario = buildLetThemInScenario(pickRandom(pool), round);
-    scenario.poolRefreshed = true;
-    return scenario;
+    if (unplayed.length) {
+      pickPool = unplayed;
+    } else {
+      pickPool = pool;
+      poolRefreshed = true;
+    }
   }
-  return buildLetThemInScenario(pickRandom(pool), round);
+
+  if (!allowRepeats && playedAsciiFingerprints.length) {
+    const freshAscii = pickPool.filter((t) =>
+      hasFreshAsciiView('stranger_knock', 'let_them_in', playedAsciiFingerprints, t.portraitKey)
+    );
+    if (freshAscii.length) pickPool = freshAscii;
+  }
+
+  const template = pickRandom(pickPool);
+  const scenario = buildLetThemInScenario(template, round, {
+    playedAsciiFingerprints,
+    allowRepeats: allowRepeats || poolRefreshed,
+  });
+  if (poolRefreshed) scenario.poolRefreshed = true;
+  return scenario;
 }
 
 export function getModeScenarioOptions(scenario) {

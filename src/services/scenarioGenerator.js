@@ -1,4 +1,4 @@
-import { pickViewType, buildViewSequence } from '../data/asciiViews';
+import { pickViewType, hasFreshAsciiView } from '../data/asciiViews';
 
 const SCENARIO_TEMPLATES = [
   {
@@ -657,16 +657,19 @@ function enumerateVariants(pool) {
   return variants;
 }
 
-function buildScenarioFromVariant(template, setupIndex, optionSetIndex, mode = 'survival') {
+function buildScenarioFromVariant(template, setupIndex, optionSetIndex, mode = 'survival', genOptions = {}) {
   const fingerprint = getVariantFingerprint(template, setupIndex, optionSetIndex);
-  const viewType = pickViewType('standard');
-  const viewSequence = buildViewSequence('standard', viewType, template.asciiKey);
+  const { playedAsciiFingerprints = [], allowRepeats = false } = genOptions;
+  const viewType = pickViewType('standard', {
+    asciiKey: template.asciiKey,
+    playedAsciiFingerprints,
+    allowRepeats,
+  });
   return {
     id: `local-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     category: template.category,
     asciiKey: template.asciiKey,
     viewType,
-    viewSequence,
     setup: template.setups[setupIndex],
     options: shuffleArray(template.optionPatterns[optionSetIndex]),
     template,
@@ -706,6 +709,7 @@ export function generateLocalScenario(round = 0, usedCategories = [], options = 
   const {
     mode = 'survival',
     playedFingerprints = [],
+    playedAsciiFingerprints = [],
     allowRepeats = false,
   } = options;
 
@@ -728,8 +732,23 @@ export function generateLocalScenario(round = 0, usedCategories = [], options = 
     }
   }
 
+  if (!allowRepeats && playedAsciiFingerprints.length) {
+    const freshAscii = candidateVariants.filter((v) =>
+      hasFreshAsciiView(v.template.asciiKey, 'standard', playedAsciiFingerprints)
+    );
+    if (freshAscii.length) {
+      candidateVariants = freshAscii;
+    }
+  }
+
   const picked = pickWeightedVariant(candidateVariants, mode);
-  const scenario = buildScenarioFromVariant(picked.template, picked.setupIndex, picked.optionSetIndex);
+  const scenario = buildScenarioFromVariant(
+    picked.template,
+    picked.setupIndex,
+    picked.optionSetIndex,
+    mode,
+    { playedAsciiFingerprints, allowRepeats: allowRepeats || poolRefreshed }
+  );
   if (poolRefreshed) scenario.poolRefreshed = true;
   return scenario;
 }
@@ -780,7 +799,7 @@ export function resolveChoice(scenario, optionIndex, round, mode = 'survival', c
 }
 
 export async function generateAiScenario(apiKey, round, previousChoices = [], options = {}) {
-  const { mode = 'survival', playedFingerprints = [], allowRepeats = false } = options;
+  const { mode = 'survival', playedFingerprints = [], playedAsciiFingerprints = [], allowRepeats = false } = options;
   const context = previousChoices.length
     ? `Previous player choices: ${previousChoices.join('; ')}. Build on this story.`
     : 'Start a new scenario — mix real-life everyday situations with tense dramatic ones.';
@@ -790,8 +809,17 @@ export async function generateAiScenario(apiKey, round, previousChoices = [], op
     .map((f) => f.slice(3))
     .slice(-12);
 
+  const playedAsciiKeys = playedAsciiFingerprints
+    .map((fp) => fp.match(/^ascii:([^:]+):/)?.[1])
+    .filter(Boolean)
+    .slice(-20);
+
   const noRepeatRule = !allowRepeats && playedSetups.length
     ? `\nDO NOT repeat or closely rephrase these already-used scenarios:\n${playedSetups.map((s, i) => `${i + 1}. ${s}`).join('\n')}\nCreate something clearly different.`
+    : '';
+
+  const noAsciiRepeatRule = !allowRepeats && playedAsciiKeys.length
+    ? `\nAvoid these already-used scene visuals (pick a different asciiKey): ${[...new Set(playedAsciiKeys)].join(', ')}`
     : '';
 
   const modeHint = mode === 'horror'
@@ -807,6 +835,7 @@ export async function generateAiScenario(apiKey, round, previousChoices = [], op
 ${context}
 ${modeHint}
 ${noRepeatRule}
+${noAsciiRepeatRule}
 
 Round: ${round + 1}
 
@@ -848,14 +877,17 @@ Make options meaningfully different — risky, cautious, and clever. Real-life s
   const parsed = JSON.parse(jsonStr);
   const setup = parsed.setup;
   const asciiKey = parsed.asciiKey || 'default';
-  const viewType = pickViewType('standard');
+  const viewType = pickViewType('standard', {
+    asciiKey,
+    playedAsciiFingerprints,
+    allowRepeats,
+  });
 
   return {
     id: `ai-${Date.now()}`,
     category: parsed.category || 'mystery',
     asciiKey,
     viewType,
-    viewSequence: buildViewSequence('standard', viewType, asciiKey),
     setup,
     options: parsed.options.slice(0, 3),
     fingerprint: `ai:${setup.trim().slice(0, 160)}`,

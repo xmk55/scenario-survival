@@ -3,7 +3,6 @@ import AsciiDisplay from './AsciiDisplay';
 import OptionButtons from './OptionButtons';
 import { useSound } from '../context/SoundContext';
 import { buildDeathSummary } from '../data/gameMeta';
-import { getViewAtBeat } from '../data/asciiViews';
 import { getModeScenarioOptions } from '../services/modeScenarios';
 
 const CATEGORY_LABELS = {
@@ -144,21 +143,16 @@ export default function GameScreen({
   const prevScenarioId = useRef(null);
   const prevCombo = useRef(0);
   const prevStrikes = useRef(strikes);
-  const [viewBeat, setViewBeat] = useState(0);
   const isHorrorMode = modeConfig.id === 'horror';
   const isEveryday = scenario?.tone === 'everyday';
 
   const activeViewType = useMemo(() => {
     if (!scenario) return 'pov';
-    if (scenario.modeType === 'let_them_in') {
-      if (scenario.interviewPhase === 'verdict') return 'portrait';
-      return getViewAtBeat(scenario.viewSequence || ['portrait', 'peephole'], viewBeat);
-    }
-    if (scenario.viewSequence?.length) {
-      return getViewAtBeat(scenario.viewSequence, viewBeat);
+    if (scenario.modeType === 'let_them_in' && scenario.interviewPhase === 'verdict') {
+      return 'portrait';
     }
     return scenario.viewType || 'pov';
-  }, [scenario, viewBeat]);
+  }, [scenario]);
 
   const displayOptions = useMemo(
     () => (scenario ? getModeScenarioOptions(scenario) : []),
@@ -169,20 +163,6 @@ export default function GameScreen({
   const roundLabel = isEndless
     ? `Round ${round + 1}`
     : `Round ${round + 1}/${modeConfig.maxRounds}`;
-
-  useEffect(() => {
-    setViewBeat(0);
-  }, [scenario?.id]);
-
-  useEffect(() => {
-    if (phase !== 'playing' || !scenario || loading) return undefined;
-    if (scenario.modeType === 'let_them_in') return undefined;
-    if (!scenario.viewSequence || scenario.viewSequence.length < 2) return undefined;
-    const interval = setInterval(() => {
-      setViewBeat((b) => b + 1);
-    }, 18000);
-    return () => clearInterval(interval);
-  }, [phase, scenario?.id, scenario?.modeType, scenario?.viewSequence, loading]);
 
   useEffect(() => {
     if (phase === 'result' && lastResult) {
@@ -384,14 +364,13 @@ export default function GameScreen({
 
       {error && <div className="error-banner">{error}</div>}
       {scenario?.poolRefreshed && (
-        <div className="info-banner">You have seen every scenario — the pool has been refreshed.</div>
+        <div className="info-banner">You have seen every scenario — fresh content is shuffled in.</div>
       )}
 
       <AsciiDisplay
         asciiKey={scenario?.asciiKey}
         portraitKey={scenario?.portraitKey}
         viewType={activeViewType}
-        viewBeat={viewBeat}
         loading={loading && !scenario}
         category={scenario?.category}
         isCreepy={scenario?.isCreepy}
